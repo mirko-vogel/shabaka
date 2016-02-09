@@ -8,124 +8,12 @@ Created on Jan 20, 2016
 
 
 import sys
-import json
 import pygraphviz as pgv
 from collections import defaultdict
 
-class LexiconEntry:
-    ROMAN_TO_INT = defaultdict(int, {
-        "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6,
-        "VII": 7, "VIII": 8, "IX": 9, "X": 10})
-    
-    def __init__(self, citation_form, entry_type, root, pattern, stem,
-                 translations, metadata = None):
-        """
-        Create an Arabic lexicon entry:
-        - citation_form: unicode string
-        - entry_type: string, e.g. "A"
-        - root: unicode string consisting of root letters (not space separated)
-        - pattern: str, e.g.FAiL
-        - stem: integer 0..10, 0 stands for no-stem
-        - translations: array of strings
-        - metadata: dictionary
-        
-        """
-        self.citation_form = citation_form
-        self.entry_type = entry_type
-        self.root = root
-        self.pattern = pattern
-        self.stem = stem
-        self.translations = translations
-        if not metadata:
-            metadata = {}
-        self.metadata = metadata
+from ArabicDictionary import ArabicDictionary
 
-    @staticmethod
-    def from_elixirfm_json(data):
-        if len(data) > 2:
-            # FIXME
-            # For Verbs: Imperative form (imperfect vocal), Masdar
-            # For Nous: Plural forms
-            # Feminine froms?
-            additional_info = data[2:]
-        entry_id, data = data[0], data[1]
-        entry_type, data = data[0].strip("-"), data[1]
-        citation_form, data = data[0], data[1]
-        # We want the root to be a unicode string without spaces
-        root, data = "".join(data[0].split()), data[1]
-        pattern, data = data[0], data[1]
-        translation, data = data[0], data[1]
-        translations = str(translation).translate(None, "\"][").split(",")
-        # If no stem info is given, use 0
-        stem = LexiconEntry.ROMAN_TO_INT[data[1:-1]]
-        
-        node = LexiconEntry(citation_form, entry_type, root, pattern, stem, translations)
-        return node
-
-    def get_surface_forms(self):
-        """
-        Returns an array of surface form one could use to search for the lexicon
-        entry, e.g. plural, feminine, etc.
-        
-        """
-        # IMPLEMENT ME
-        return [self.citation_form]
-
-
-    def __unicode__(self):
-        return "%s (%s): %s" % (self.citation_form, self.entry_type,
-                                 ", ".join(self.translations)) 
-
-    @property
-    def is_verb(self):
-        return self.entry_type == "V"
-
-class Lexicon:
-    def __init__(self):
-        # Array of LexiconEntry objects
-        self.entries = []
-        # Set of known roots
-        self.roots = set([])
-        # Dictionary: vocalized surface form -> array of LexiconEntry objects
-        #   populated with plural, feminine forms, etc., too
-        self.entries_by_surface_form = defaultdict(list)
-
-    def import_dump(self, fn):
-        raw = json.load(open(fn), "utf-8")
-        
-        def flatten(a):
-            if type(a) == unicode:
-                return a
-            a = map(flatten, a)
-            if len(a) == 1:
-                return a[0]
-            return a 
-        
-        raw = flatten(raw)
-        for r in raw:
-            root_id = str(r[0]).translate(None, "()[],")
-            derivations = r[1][1:]
-            for e in derivations:
-                try:
-                    entry = LexiconEntry.from_elixirfm_json(e)
-                    print unicode(entry)
-                    self.add_entry(entry)
-                except:
-                    print "Error parsing derivation from root id %s", root_id
-                    
-    def add_entry(self, entry):
-        """
-        Add lexicon entry to lexicon. Updates "lookup table" 
-        entries_by_surface_form.
-        
-        """
-        self.entries.append(entry)
-        self.roots.add(entry.root)
-        for s in entry.get_surface_forms():
-            self.entries_by_surface_form[s].append(entry)
-        
-
-class LexiconNode(object):
+class DictionaryNode(object):
     NODE_ATTRIBUTES = {"shape": "plaintext"}
     
     def __init__(self, entry, edges = None):
@@ -194,7 +82,7 @@ class LexiconNode(object):
         s += '</TABLE>'
         return s
 
-class StemNode(LexiconNode):
+class StemNode(DictionaryNode):
     NODE_ATTRIBUTES = {"shape": "plaintext"}
     
     @staticmethod
@@ -211,15 +99,15 @@ class StemNode(LexiconNode):
         for e in entries:
             if e.is_verb:
                 continue
-            n = LexiconNode(e)
-            e = DirectedLexiconEdge(stem_node, n, e.entry_type)
+            n = DictionaryNode(e)
+            e = DirectedEdge(stem_node, n, e.entry_type)
             nodes.append(n)
             edges.append(e)
         
         return nodes, edges
 
     
-class RootNode(LexiconNode):
+class RootNode(DictionaryNode):
     NODE_ATTRIBUTES = {"color": "grey"}
     
     """ Represent a root, does not carry a lexicon entry """
@@ -250,11 +138,11 @@ class RootNode(LexiconNode):
                 # Subgraphs by verb stem are handled be StemNode
                 new_nodes, new_edges = StemNode.create_graph(stem_entries)
                 stem_node = next(n for n in new_nodes if type(n) == StemNode)
-                new_edges.append(DirectedLexiconEdge(root_node, stem_node, stem))
+                new_edges.append(DirectedEdge(root_node, stem_node, stem))
             else:
                 # Others connect directly to root
-                new_nodes = [LexiconNode(e) for e in stem_entries]
-                new_edges = [DirectedLexiconEdge(root_node, n) for n in new_nodes]
+                new_nodes = [DictionaryNode(e) for e in stem_entries]
+                new_edges = [DirectedEdge(root_node, n) for n in new_nodes]
             
             nodes += new_nodes
             edges += new_edges
@@ -266,7 +154,7 @@ class RootNode(LexiconNode):
         return '<FONT COLOR="GREY" POINT-SIZE="20">%s</FONT>' % r
             
 
-class DirectedLexiconEdge(object):
+class DirectedEdge(object):
     def __init__(self, source, target, label = ""):
         """
         Create a directed lexicon edge, adding itself to source and target 
@@ -304,7 +192,7 @@ class DirectedLexiconEdge(object):
         already_drawn.add(self)
 
 
-class LexiconGraph:
+class ArabicDictionaryGraph:
     GRAPHVIZ_PARAMS = {"directed": True, "overlap": "scale"}
     
     def __init__(self, lexicon):
@@ -326,20 +214,20 @@ class LexiconGraph:
             self.edges += edges
     
     def draw(self, center_node, max_dist = 3):
-        G = pgv.AGraph(**LexiconGraph.GRAPHVIZ_PARAMS)
+        G = pgv.AGraph(**ArabicDictionaryGraph.GRAPHVIZ_PARAMS)
         center_node.draw_neighbourhood(G, 0, max_dist)
         return G
 
 fn = sys.argv[1]
-l = Lexicon()
+l = ArabicDictionary()
 l.import_dump(fn)
-lg = LexiconGraph(l)
+lg = ArabicDictionaryGraph(l)
 G = lg.draw(lg.nodes[14], 2)
 #engines = ("dot", "neato", "sfdp", "fdp", "twopi", "circo")
 engines = ("neato", )
 for engine in engines:
     G.layout(prog = engine)
-    print G.string()
+    #print G.string()
     G.draw("%s.svg" % engine)
 
 
