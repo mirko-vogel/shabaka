@@ -1,0 +1,67 @@
+*
+{
+    margin:0;padding:0;
+}
+
+html,body,.container, .sideBar, .content
+{
+    height: 100%;
+}
+
+.header
+{
+    height: 50px;
+    line-height: 50px;
+    background: grey;
+}
+
+.title 
+{
+    font-size: 20;
+    font-family: monospace;
+    text-align: right;
+    direction: rtl;
+    margin-right: 10px;
+    color: #4D4D4D;
+}
+
+
+.container
+{
+    margin-top: -50px;
+    padding-top: 50px;
+    box-sizing: border-box;
+}
+
+.sideBar
+{
+    float:right;
+    width: 300px;
+    background: black;
+    color: white;
+}
+
+.content
+{
+    overflow:hidden;
+    background: white; 
+    text-align: center;  
+}
+
+.graph {
+    vertical-align: middle;
+}
+
+p {
+    margin: 10px;
+    text-align: right;
+}
+
+p.citation_form {
+    line-height: 60px;
+    font-size: 30px;
+}
+
+p.translations {
+    font-size: 20px;
+}

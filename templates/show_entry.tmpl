@@ -1,0 +1,31 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Arabic Word Graph - $entry.citation_form</title>
+  <link rel="stylesheet" href="static/main.css">
+</head>
+
+<body>
+
+<div class="header">
+<div class="title">
+مسودة رسومات بيانية اشتقاقية
+/ pre-alpha arabic derivation graph viewer
+</div>
+</div>
+<div class="container">       
+    <div class="sideBar">
+    	<p class="citation_form">
+    		$entry.citation_form
+    	</p>
+    	<p class="translations">
+    		$str.join(", ", $entry.translations)
+    	</p>
+	
+    </div>
+    <div class="content">
+      <div class="graph"> $svg </div>
+    </div>
+</div>
+</body>
+</html>
