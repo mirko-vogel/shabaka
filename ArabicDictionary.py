@@ -11,7 +11,7 @@ class ArabicDictionaryEntry:
     ROMAN_TO_INT = defaultdict(int, {
         "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6,
         "VII": 7, "VIII": 8, "IX": 9, "X": 10})
-    
+
     def __init__(self, citation_form, entry_type, root, pattern, stem,
                  translations, metadata = None):
         """
@@ -34,6 +34,7 @@ class ArabicDictionaryEntry:
         if not metadata:
             metadata = {}
         self.metadata = metadata
+
 
     @staticmethod
     def from_elixirfm_json(data):

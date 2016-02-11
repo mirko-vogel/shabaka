@@ -13,15 +13,24 @@ from collections import defaultdict
 
 from ArabicDictionary import ArabicDictionary
 
-class DictionaryNode(object):
-    NODE_ATTRIBUTES = {"shape": "plaintext"}
-    
-    def __init__(self, entry, edges = None):
-        self.entry = entry
+class DictionaryNodeBase(object):
+    last_id = 0
+
+    def __init__(self, edges = None):
         self.edges = edges
         if not self.edges:
             self.edges = []
-        
+  
+        self.id = DictionaryNode.last_id
+        DictionaryNode.last_id += 1
+
+class DictionaryNode(DictionaryNodeBase):
+    NODE_ATTRIBUTES = {"shape": "plaintext"}
+    
+    def __init__(self, entry, edges = None):
+        DictionaryNodeBase.__init__(self, edges)
+        self.entry = entry
+              
         # Maybe not an elegant solution ...
         self.entry.metadata["node"] = self
 
@@ -40,7 +49,7 @@ class DictionaryNode(object):
             return
         
         self.draw(G, cur_dist, already_drawn)
-        if cur_dist <= max_dist:
+        if cur_dist < max_dist:
             for e in self.edges:
                 e.otherside(self).draw_neighbourhood(G, cur_dist + 1, max_dist,
                                                      already_drawn)
@@ -51,7 +60,7 @@ class DictionaryNode(object):
         if self in already_drawn:
             return
         
-        G.add_node(hash(self), label = "<%s>" % self.get_node_label(cur_dist),
+        G.add_node(hash(self), label = "<%s>" % self.get_node_label(cur_dist), URL = "show?node_id=%s" % self.id,
                    **self.NODE_ATTRIBUTES)
         already_drawn.add(self)
         
@@ -112,10 +121,8 @@ class RootNode(DictionaryNode):
     
     """ Represent a root, does not carry a lexicon entry """
     def __init__(self, root, edges = None):
+        DictionaryNodeBase.__init__(self, edges)
         self.root = root
-        self.edges = edges
-        if not self.edges:
-            self.edges = []
     
     @staticmethod
     def create_graph(root, entries):
@@ -218,18 +225,19 @@ class ArabicDictionaryGraph:
         center_node.draw_neighbourhood(G, 0, max_dist)
         return G
 
-fn = sys.argv[1]
-l = ArabicDictionary()
-l.import_dump(fn)
-lg = ArabicDictionaryGraph(l)
-G = lg.draw(lg.nodes[14], 2)
-#engines = ("dot", "neato", "sfdp", "fdp", "twopi", "circo")
-engines = ("neato", )
-for engine in engines:
-    G.layout(prog = engine)
-    #print G.string()
-    G.draw("%s.svg" % engine)
-
-
+if __name__ == '__main__':
+    fn = sys.argv[1]
+    l = ArabicDictionary()
+    l.import_dump(fn)
+    lg = ArabicDictionaryGraph(l)
+    G = lg.draw(lg.nodes[3], 2)
+    #engines = ("dot", "neato", "sfdp", "fdp", "twopi", "circo")
+    engines = ("neato", )
+    open("graph.dot", "w").write(G.string().encode("utf-8"))
+    for engine in engines:
+        G.layout(prog = engine)
+        G.draw("%s.svg" % engine)
+    
+    
  
 
