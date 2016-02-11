@@ -22,7 +22,7 @@ html,body,.container, .sideBar, .content
     text-align: right;
     direction: rtl;
     margin-right: 10px;
-    color: black;
+    color: #4D4D4D;
 }
 
 
@@ -52,16 +52,26 @@ html,body,.container, .sideBar, .content
     vertical-align: middle;
 }
 
-p {
-    margin: 10px;
+/* Side bar element formatting */
+
+.sbElementContainer {
+    margin: 15px;
     text-align: right;
 }
 
-p.citation_form {
+.citation_form {
     line-height: 60px;
     font-size: 30px;
 }
 
-p.translations {
-    font-size: 20px;
+.sbElementHeader {
+    border-top: 1px solid grey;
+    font-size: 14px;
+    color: grey;
 }
+
+.sbElementContent {
+    font-size: 15pt;
+}
+
+

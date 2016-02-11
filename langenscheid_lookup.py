@@ -5,7 +5,7 @@ import urllib
 from lxml.html import soupparser
 from lxml import etree
 import sys
-
+from pyarabic import araby
 """
 >>> import pygraphviz as pgv
 >>> G=pgv.AGraph()
@@ -51,24 +51,38 @@ def get_text(root):
 def handle_result_block(e):
     # compound block
     if has_child_of_class(e, SENSE_GROUP_CLASS):
-        return
+        return  # FIXME
         handle_entry(e)
         groups = get_children_by_class(e, SENSE_GROUP_CLASS)
         for g in groups:
             handle_entry(g)
     else:
-        handle_entry(e)
+        return handle_entry(e)
 
 def handle_entry(e):
     lemma = get_text(get_child_by_class(e, [LEMMA_CLASS, EXT_LEMMA_CLASS]))
     transcription = get_text(get_child_by_class(e, TRANSCRIPTION_CLASS))
     translations = [get_text(c) for c in get_children_by_class(e, TRANSLATION_CLASS)]
-    print "%s %s: %s" % (lemma, transcription, ", ".join(translations))
+    return (lemma, transcription, translations)
 
-
-url = "http://de.langenscheidt.com/arabisch-deutsch/%s" % sys.argv[1]
-#print "Fetching %s" % url
-doc = urllib.urlopen(url).read()
-root = soupparser.fromstring(doc)
-for e in get_children_by_class(root, RESULT_BLOCK_CLASS):
-    handle_result_block(e)
+def lookup(s):
+    """
+    Looks up a unicode string s in Langenscheidt online dict
+    Returns a list of unicode tuples (lemma, transcription, translations)
+    
+    """
+    # Stupid langenscheid cannot handle tashkeel ...
+    s = araby.strip_tashkeel(s).encode("utf-8")
+    url = "http://de.langenscheidt.com/arabisch-deutsch/%s" % s
+    #print "Fetching %s" % url
+    doc = urllib.urlopen(url).read()
+    root = soupparser.fromstring(doc)
+    children = get_children_by_class(root, RESULT_BLOCK_CLASS)
+    results = [handle_result_block(e) for e in children]
+    return [r for r in results if r]
+    
+if __name__ == '__main__':
+    s = sys.argv[1].decode("utf-8")
+    for (lemma, transcription, translations) in lookup(s):
+        o = "%s (%s): %s" % (lemma, transcription, ", ".join(translations))
+        print o.encode("utf-8")

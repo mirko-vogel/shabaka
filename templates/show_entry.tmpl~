@@ -35,7 +35,7 @@
         <div class="sbElementHeader">
         langenscheidt dictionary
 	</div>
-        <div class="sbElementContent" style="direction: ltr;">
+        <div class="sbElementContent" style="direction: lrt;">
         $unicode.join(u"<br>", ("%s: %s" % (transcription, ", ".join(translations)) for (lemma, transcription, translations) in $langenscheidt_info))
 
 	</div>
