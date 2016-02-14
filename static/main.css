@@ -3,40 +3,80 @@
     margin:0;padding:0;
 }
 
-html,body,.container, .sideBar, .content
+body
 {
     height: 100%;
+    width: 100%;
+    margin: 0px;
 }
 
-.header
+/* Header */
+
+#header
 {
     height: 50px;
-    line-height: 50px;
+    width: 100%;
     background: grey;
-}
-
-.title 
-{
     font-size: 20;
-    font-family: monospace;
+    line-height: 50px;
     text-align: right;
     direction: rtl;
-    margin-right: 10px;
     color: #4D4D4D;
 }
 
-
-.container
+#title 
 {
-    margin-top: -50px;
-    padding-top: 50px;
-    box-sizing: border-box;
+    font-family: monospace;
+    margin-right: 10px;
+
+    position: absolute;
+    left:200px;
+    right:0;
+    top:0;
+    height: 50px;
+}
+
+
+#search 
+{
+    text-align: left;
+    width: 200px
+    height: 50px;
+    margin-left: 10px;
+}
+
+input 
+{
+    font-size: 20;
+}
+
+
+input[type=text]
+{
+    width: 140px;
+}
+
+input[type=submit]
+{
+    width: 60px;
+}
+
+/* Content container */
+
+#container
+{
+    position: absolute;
+    left:0;
+    width: 100%;
+    top:50px;
+    bottom: 0px;
 }
 
 .sideBar
 {
     float:right;
     width: 300px;
+    height: 100%;
     background: black;
     color: white;
 }
@@ -46,6 +86,7 @@ html,body,.container, .sideBar, .content
     overflow:hidden;
     background: white; 
     text-align: center;  
+    height: 100%;
 }
 
 .graph {

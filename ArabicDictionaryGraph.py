@@ -224,6 +224,11 @@ class ArabicDictionaryGraph:
         G = pgv.AGraph(**ArabicDictionaryGraph.GRAPHVIZ_PARAMS)
         center_node.draw_neighbourhood(G, 0, max_dist)
         return G
+    
+    def search(self, s):
+        """ Returns list of nodes, see ArabicDictionary.search """
+        entries = self.lexicon.search(s)
+        return [e.metadata["node"] for e in entries]
 
 if __name__ == '__main__':
     fn = sys.argv[1]

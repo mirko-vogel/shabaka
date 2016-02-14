@@ -6,6 +6,7 @@ Created on Feb 9, 2016
 
 import json
 from collections import defaultdict
+from pyarabic import araby
 
 class ArabicDictionaryEntry:
     ROMAN_TO_INT = defaultdict(int, {
@@ -117,5 +118,23 @@ class ArabicDictionary:
         self.entries.append(entry)
         self.roots.add(entry.root)
         for s in entry.get_surface_forms():
+            # Add vocalized and non-vocalized forms
             self.entries_by_surface_form[s].append(entry)
+            self.entries_by_surface_form[araby.strip_tashkeel(s)].append(entry)
+        
+    def search(self, citation_form):
+        """
+        Seach for given citation form. If not found try again without diacritcs.
+        
+        Returns a list of ArabicDictionaryEntries. 
+        """
+        if citation_form not in self.entries_by_surface_form:
+            citation_form = araby.strip_tashkeel(citation_form)
+
+        try:
+            return self.entries_by_surface_form[citation_form]
+        except IndexError:
+            return []
+        
+        
         

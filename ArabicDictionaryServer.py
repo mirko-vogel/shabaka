@@ -6,24 +6,15 @@ Bla bal
 @author:     Mirko Vogel
 '''
 import sys, os
+import langenscheid_lookup
 
 import cherrypy, cherrypy.lib.static
 import tempfile
+from Cheetah.Template import Template
 
 from ArabicDictionary import ArabicDictionary
 from ArabicDictionaryGraph import ArabicDictionaryGraph
 
-TEMPLATE = """
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Arabic Graph - %s</title>
-</head>
-<body>
-  %s
-</body
-</html>
-"""
 
 class ArabicDictionaryServer(object):
     def __init__(self, adg):
@@ -31,15 +22,24 @@ class ArabicDictionaryServer(object):
         
     @cherrypy.expose
     def index(self):
-        '''
-        '''
-        return 'What up, yo?'
+        raise cherrypy.HTTPRedirect("show?node_id=2")
+
+    @cherrypy.expose
+    def search(self, citation_form):
+        nodes = self.adg.search(citation_form)
+        if nodes:
+            return self._show(nodes[0])
+        
+        return "Sorry, nothing found."
 
     @cherrypy.expose
     def show(self, node_id):
         """Returns html page with embeded svg"""
 
         center_node = self.adg.nodes[int(node_id)]
+        return self._show(center_node)
+
+    def _show(self, center_node):
         G = self.adg.draw(center_node, 2)
         
         path = tempfile.mktemp(suffix = ".svg")
@@ -47,23 +47,23 @@ class ArabicDictionaryServer(object):
         svg_lines = open(path).readlines()
         os.unlink(path)
         
-        svg = "\n".join(svg_lines[6:])
-        entry = unicode(center_node.entry).encode("utf-8")
-        s = TEMPLATE % (entry, svg)
-        return s
+        try:
+            li = langenscheid_lookup.lookup(center_node.entry.citation_form)
+        except:
+            li = []
+            
+        vars = { "entry": center_node.entry, "langenscheidt_info": li,
+                 "svg": "\n".join(svg_lines[6:]) }
+        
+        tmpl = file("templates/show_entry.tmpl").read().decode("utf-8")
+        t = Template(tmpl, searchList = [vars])
+        return unicode(t).encode("utf8")
 
     
-conf = {
-    'global': {
-        'server.socket_host': '0.0.0.0',
-        'server.socket_port': 8080
-    }
-}
-
 if __name__ == '__main__':
     l = ArabicDictionary()
     l.import_dump(sys.argv[1])
     adg = ArabicDictionaryGraph(l)
     server = ArabicDictionaryServer(adg)
     
-    cherrypy.quickstart(server, '/', conf)
+    cherrypy.quickstart(server, '/', "cherrypy.conf")
