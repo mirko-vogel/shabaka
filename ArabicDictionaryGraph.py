@@ -11,7 +11,7 @@ import sys
 import pygraphviz as pgv
 from collections import defaultdict
 
-from ArabicDictionary import ArabicDictionary
+from ArabicDictionary import ArabicDictionary, ArabicDictionaryEntry
 
 class DictionaryNodeBase(object):
     last_id = 0
@@ -101,7 +101,13 @@ class StemNode(DictionaryNode):
         Return tuple (created nodes, created edges)
         
         """
-        verb_entry = next(e for e in entries if e.is_verb)
+        verb_entry = next((e for e in entries if e.is_verb), None)
+        if not verb_entry:
+            # Stupid hack
+            verb_entry = ArabicDictionaryEntry("", "V", entries[0].root, "",
+                                                                entries[0].stem, [])
+            print "Invented verb of stem %s of root %s" % (verb_entry.stem, verb_entry.root) 
+        
         stem_node = StemNode(verb_entry)
         nodes, edges = [stem_node], []
 

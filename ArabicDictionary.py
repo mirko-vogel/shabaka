@@ -1,10 +1,12 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 '''
 Created on Feb 9, 2016
 
 @author: mirko
 '''
 
-import json
+import json, sys
 from collections import defaultdict
 from pyarabic import araby
 
@@ -136,5 +138,9 @@ class ArabicDictionary:
         except IndexError:
             return []
         
-        
-        
+if __name__ == '__main__':
+    fn = sys.argv[1]
+    l = ArabicDictionary()
+    l.import_dump(fn)
+    res = l.search(u"لاسلكي")    
+    print unicode(res[0]).encode("utf-8")
