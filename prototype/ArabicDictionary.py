@@ -109,7 +109,7 @@ class ArabicDictionary:
                     entry = ArabicDictionaryEntry.from_elixirfm_json(e)
                     self.add_entry(entry)
                 except:
-                    print "Error parsing derivation from root id %s", root_id
+                    print "Error parsing derivation from root id %s" % root_id
                     
     def add_entry(self, entry):
         """

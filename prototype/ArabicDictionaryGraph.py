@@ -241,7 +241,7 @@ if __name__ == '__main__':
     l = ArabicDictionary()
     l.import_dump(fn)
     lg = ArabicDictionaryGraph(l)
-    G = lg.draw(lg.nodes[3], 2)
+    G = lg.draw(lg.nodes[-1], 4)
     #engines = ("dot", "neato", "sfdp", "fdp", "twopi", "circo")
     engines = ("neato", )
     open("graph.dot", "w").write(G.string().encode("utf-8"))
