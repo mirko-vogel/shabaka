@@ -19,10 +19,9 @@ class WebQuery(ExternalDataQuery):
         self.parse_webpage(). Finally sets self._result.
         
         """
-        url = self.url
-        request = urllib2.Request(url)
+        request = urllib2.Request(self.url.encode("utf-8"))
         request.add_header('User-Agent', 'ShabakaWebQuery/0.1 +http://shabaka.redredblue.de')
-        doc = urllib2.build_opener(urllib2.HTTPHandler(debuglevel=1)).open(request).read()
+        doc = urllib2.build_opener().open(request).read()
 
         bs = BeautifulSoup(doc)
         self._result = self.parse_webpage(bs)

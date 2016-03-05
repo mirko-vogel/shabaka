@@ -4,6 +4,7 @@
 @author: mirko
 '''
 from threading import Thread
+import sys
 
 class ExternalDataQuery(Thread):
     """
@@ -61,6 +62,12 @@ class ExternalDataProvider(object):
         """ Returns the name of the provider """
         raise NotImplementedError
 
+    def run_cli(self):
+        """ Run command line interface, reading input line by line """
+        while True:
+            s = raw_input("> ").decode("utf-8")
+            r = self.query(s).result
+            sys.stdout.write(r.encode("utf-8") + "\n")
 
 if __name__ == '__main__':
     pass
