@@ -12,9 +12,10 @@ class ExternalDataQuery(Thread):
     
     """
     
-    def __init__(self, query_string):
+    def __init__(self, query_string, provider):
         Thread.__init__(self)
         self.query_string = query_string
+        self._provider = provider
         self._result = None
         
     def run(self):
@@ -29,6 +30,11 @@ class ExternalDataQuery(Thread):
         self.join()
         return self._result
         
+    @property
+    def provider(self):
+        """ Returns the name of the provider """
+        return self._provider.name
+    
 
 class ExternalDataProvider(object):
     """
@@ -51,7 +57,7 @@ class ExternalDataProvider(object):
         
         """
         if query_string not in self.cache:
-            q = self.QueryClass(query_string)
+            q = self.QueryClass(query_string, self)
             q.start()
             self.cache[query_string] = q
             
@@ -68,6 +74,7 @@ class ExternalDataProvider(object):
             s = raw_input("> ").decode("utf-8")
             r = self.query(s).result
             sys.stdout.write(r.encode("utf-8") + "\n")
+
 
 if __name__ == '__main__':
     pass

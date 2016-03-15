@@ -6,9 +6,6 @@
 
 from WebQuery import WebQuery
 from ExternalDataProvider import ExternalDataProvider
-from pyarabic import araby
-
-import sys
 
 class DMSAQuery(WebQuery):
     """ 

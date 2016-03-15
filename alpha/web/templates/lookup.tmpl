@@ -1,0 +1,39 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Searching for $query</title>
+  <style>
+  body { direction: rtl; margin: 0px; width: 100%}
+  h1 { font-size: 22px }
+  input { font-size: 22px ; border: 0px; border-bottom: 1px solid white; background: black; color: white}
+  div.header {width: 100%; color: white; background: black;
+               font-size: 22px; }
+  div.content { padding: 10px; font-size: 18px;  }
+  form { padding: 10px}
+  </style>
+</head>
+
+<body>
+<div class = "header">
+<form action="lookup">
+   البحث عن
+  <input type="text" name="q" value="$query">
+  <input type="submit" value="go">
+</form>
+</div>
+
+<div class="content">
+#for r in $results:
+<div>
+  <h1> <a href="$r.url"> $r.provider </a> </h1>
+  #for p in $r.result.split("\n")
+    <p>
+    $p
+    </p>
+  #end for
+</div>
+#end for
+</div>
+</body>
+</html>
+
