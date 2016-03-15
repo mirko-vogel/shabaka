@@ -4,7 +4,7 @@
 @author: mirko
 '''
 
-import pyorient.ogm as ogm
+import pyorient
 from pyarabic import araby
 from pyorient.otypes import OrientRecord
 
@@ -30,7 +30,7 @@ def encode_map(m):
     """  Recursively encodes unicode string in keys and values """
     return recursive_map(m, lambda x: x.encode("utf-8"), lambda x: type(x) == unicode)
 
-def decode_map(m):
+def deencode_map(m):
     """  Recursively encodes unicode string in keys and values """
     return recursive_map(m, lambda x: x.decode("utf-8"), lambda x: type(x) == str)
 
@@ -39,22 +39,18 @@ class ArabicWordGraph(object):
     """
     
     """
-    def __init__(self, db_name = "shabaka", db_user = "root", db_pwd = "triangle"):
+    def __init__(self, db_name = "shabaka", db_user = "admin", db_pwd = "admin"):
         """
         Establishes connection to OrientDB
         
         """
-        config = ogm.Config("localhost", 2424, db_user, db_pwd, db_name)
-        self.OG = ogm.Graph(config)
-        self.OG.include(self.OG.build_mapping(ogm.declarative.declarative_node(),
-                                              ogm.declarative.declarative_relationship(),
-                                              auto_plural = True))
-        
-        self.cluster_ids = self.OG.client._cluster_map
+        self.client = pyorient.OrientDB()
+        r = self.client.db_open(db_name, db_user, db_pwd, pyorient.DB_TYPE_GRAPH)
+        self.cluster_ids = dict((c.name, c.id) for c in r)
 
     def get_node(self, rid, limit = 100, fetchplan = "*:0"):
         res = []
-        self.OG.client.query("SELECT FROM %s" % rid, limit, fetchplan, lambda x: res.append(x))
+        self.client.query("SELECT FROM %s" % rid, limit, fetchplan, lambda x: res.append(x))
 
         return res
 
@@ -66,19 +62,16 @@ class ArabicWordGraph(object):
         # if word is vocalized, look for an exact match
         if araby.is_vocalized(q):
             query = "SELECT FROM index:Node.label where key = '%s'" % q
-            self.OG.client.query(query, limit, fetchplan, lambda x: res.append(x))
+            self.client.query(query, limit, fetchplan, lambda x: res.append(x))
             if res:
                 return res
             
         # search ignoring vocalization
         query = "SELECT FROM index:ArabicNode.unvocalized_label WHERE key = '%s'" \
                     % araby.strip_tashkeel(q)
-        self.OG.client.query(query, limit, fetchplan, lambda x: res.append(x))
+        self.client.query(query, limit, fetchplan, lambda x: res.append(x))
         
-        for r in res:
-            r.oRecordData["label"] = r.oRecordData["label"].decode("utf-8")
-        
-        return self.OG.elements_from_records(res)
+        return res
 
     
     def create_node(self, _class, label, **kwargs):
@@ -88,7 +81,7 @@ class ArabicWordGraph(object):
         """
         try:
             kwargs["label"] = label
-            return self.OG.client.record_create(self.cluster_ids[_class],
+            return self.client.record_create(self.cluster_ids[_class],
                                          encode_map(kwargs))
         except:
             raise
@@ -102,7 +95,7 @@ class ArabicWordGraph(object):
             src = src._OrientRecord__rid
         if type(tgt) == OrientRecord:
             tgt = tgt._OrientRecord__rid
-        return self.OG.client.command("CREATE EDGE %s from %s to %s CONTENT %s" % 
+        return self.client.command("CREATE EDGE %s from %s to %s CONTENT %s" % 
                                    (_class, src, tgt, encode_map(kwargs)))
     
     def create_arabic_node(self, cluster_name, label, **kwargs):
@@ -166,14 +159,5 @@ if __name__ == '__main__':
     # n1 = graph.add_verb_node( u"اِسْتَهْلَكَ", "X", r)
     # n2 = graph.add_noun_node(u"اِسْتِهْلَاْكٌ", n1, edge_properties = {"type": "masdar"})
     # n3 = graph.add_noun_node(u"مُسْتَهْلِكٌ", n1, edge_properties = {"type": "pp"})
-    #r = graph.search_arabic_node(u"َخَرَج")
-
-    r = graph.search_arabic_node(u"َخَرَج", 100, "*:2")
-    for e in r:
-        print e
-        try:
-            print e.inE()
-            #print e.in_()
-        except:
-            print e.inV()
-            print e.outV()
+    r = graph.search_arabic_node(u"َخَرَج")
+    r = graph.search_arabic_node(u"َخَرَج", 100, "*:4")
