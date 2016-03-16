@@ -98,12 +98,12 @@ class WrappedNode(WrappedRecord):
     @property
     def in_(self):
         """Returns adjacent incoming nodes (as iterator)"""
-        return (e.in_ for e in self.inE)
+        return (e.out for e in self.inE)
     
     @property
     def out(self):
         """Returns adjacent outgoing nodes"""
-        return (e.out for e in self.outE)
+        return (e.in_ for e in self.outE)
 
     @property
     def both(self):
@@ -137,9 +137,9 @@ class WrappedEdge(WrappedRecord):
         """
         super(WrappedEdge, self).update_links(map)
         if self.in_:
-            self.in_.outE.append(self)
+            self.in_.inE.append(self)
         if self.out:
-            self.out.inE.append(self)
+            self.out.outE.append(self)
 
     def __unicode__(self):
         d = dict(self.data.iteritems())
