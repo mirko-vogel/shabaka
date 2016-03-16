@@ -53,6 +53,9 @@ class WrappedRecord(object):
     def is_edge(self):
         raise NotImplementedError
 
+    @property
+    def is_index_record(self):
+        return self.rid == "#-1:-1"
 
 class WrappedNode(WrappedRecord):
     def __init__(self, record):
@@ -86,6 +89,11 @@ class WrappedNode(WrappedRecord):
     @property
     def is_edge(self):
         return False
+
+    @property
+    def is_orphan(self):
+        """ Returns whether there are no adjacent edges """
+        return not self.inE and not self.outE
 
     @property
     def in_(self):

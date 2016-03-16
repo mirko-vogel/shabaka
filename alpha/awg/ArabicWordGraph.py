@@ -23,14 +23,15 @@ class ArabicWordGraph(object):
         r = self.client.db_open(db_name, db_user, db_pwd, pyorient.DB_TYPE_GRAPH)
         self.cluster_ids = dict((c.name, c.id) for c in r)
 
-    def search(self, q, limit = 100, fetchplan = "*:1"):
+    def search_index(self, q, index = "Node.label", limit = 100, fetchplan = "*:1"):
         """
         Runs a query against the label index, returns a ResultSet. 
         
         """
-        query = "SELECT FROM index:Node.label where key = '%s'" \
-                "LIMIT %s FETCHPLAN %s" % (q, limit, fetchplan)
-        return ResultSet.from_query(self.client, query)
+        query = "SELECT FROM index:%s where key = '%s' " \
+                "LIMIT %s FETCHPLAN %s" % (index, q, limit, fetchplan)
+        rs = ResultSet.from_query(self.client, query)
+        return rs
 
     def search_arabic(self, q, limit = 100, fetchplan = "*:1"):
         """
@@ -39,11 +40,12 @@ class ArabicWordGraph(object):
         res = None
         # if word is vocalized, look for an exact match
         if araby.is_vocalized(q):
-            res = self.search(q, limit, fetchplan)
+            res = self.search_index(q, limit = limit, fetchplan = fetchplan)
             
         # search ignoring vocalization
         if not res:
-            res = self.search(araby.strip_tashkeel(q), limit, fetchplan)
+            res = self.search_index(araby.strip_tashkeel(q),
+                        "ArabicNode.unvocalized_label", limit, fetchplan)
 
         return res
 
@@ -136,6 +138,10 @@ if __name__ == '__main__':
     # n3 = graph.add_noun_node(u"مُسْتَهْلِكٌ", n1, edge_properties = {"type": "pp"})
     r = graph.search_arabic(u"أ ل ف",
                                  100, "*:2")
-    r._dump()
-    r = graph.search_arabic(u"ألف", 10, "*:4")
-    r._dump()
+    #r._dump()
+    r = graph.search_arabic(u"ألف", 10, "*:3")
+    for n in r.index_results:
+        print n.cls, n.rid, n.data["label"]
+    print
+    for n in r.nodes:
+        print n.cls, n.rid, n.data["label"]

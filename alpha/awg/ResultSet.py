@@ -14,74 +14,62 @@ class ResultSet(object):
         """
         Creates a ResultSet by querying an OrientDB client.
         
-        The records returned by callback are considered fetchplanr results.
-        (This behaviour is not documented, though.)  
-        
         """
-        fetchplan_results = []
-        cb = lambda r: fetchplan_results.append(r)
+        results = []
+        cb = lambda r: results.append(r)
         # We cannot specify a callback without specifying fetchplan and limit
         # Use defaults - should be overwritten by what is given in query
-        direct_results = orientdb_client.query(query, 20, "*:0", cb)
-        return ResultSet(direct_results, fetchplan_results)
+        results += orientdb_client.query(query, 20, "*:0", cb)
+        return ResultSet(results)
     
-    def __init__(self, direct_results, fetchplan_results = [],
-                 drop_index_results = False):
+    def __init__(self, results):
         """
-        Creates a ResultSet from OrientRecords keeping track of the origin of
-        the record.
+        Creates a ResultSet from OrientRecords, deleting index records.
         
         For each OrientRecord, either a WrappedEdge or a WrappedNode object is
         created. Then links are updated, see WrappedEdge.update_endpoints().
-        
-        If drop_index_results is given, consider the direct results as index
-        nodes 
          
         """
-        self.edges = []
-        self.nodes = []
-        result_map = dict((r._OrientRecord__rid, WrappedRecord.from_record(r))
-                          for r in chain(direct_results, fetchplan_results))
-        for r in result_map.itervalues():
-            r.update_links(result_map)
-            if r.is_edge:
-                self.edges.append(r)
+        self.result_map = {}
+        self.index_results_rids = set()
+        for r in results:
+            wr = WrappedRecord.from_record(r)
+            if wr.is_index_record:
+                target_rid = "#" + wr.data["rid"]._OrientRecordLink__link
+                self.index_results_rids.add(target_rid)
             else:
-                self.nodes.append(r)
-        
-        self.direct_results_rids = [r._OrientRecord__rid for r in direct_results]
+                self.result_map[r._OrientRecord__rid] = wr
 
-    @property
-    def direct_results(self):
-        return chain(self.direct_result_edges, self.direct_result_nodes)
-
-    @property
-    def direct_result_edges(self):
-        return ifilter(lambda e: e.rid in self.direct_results_rids, self.edges)
-
-    @property
-    def direct_result_nodes(self):
-        return ifilter(lambda e: e.rid in self.direct_results_rids, self.nodes)
-
-    @property
-    def fetchplan_results(self):
-        return chain(self.fetchplan_result_edges, self.fetchplan_result_nodes)
-
-    @property
-    def fetchplan_result_edges(self):
-        return ifilter(lambda e: e.rid not in self.direct_results_rids, self.edges)
+        for r in self.result_map.itervalues():
+            r.update_links(self.result_map)
     
     @property
-    def fetchplan_result_nodes(self):
-        return ifilter(lambda e: e.rid not in self.direct_results_rids, self.nodes)
+    def index_results(self):
+        """
+        Returns the results that where found by looking up in an index.
+        (Does not return the nodes representing index entries but the nodes
+        or edges they point to.) 
+        
+        This is the "primary" search result when using an index lookup together
+        with a fetchplan.
+        
+        """
+        return (self.result_map[rid] for rid in self.index_results_rids)
 
-    def _dump(self):
-        print "Direct Results:"
-        for r in chain(self.direct_result_edges, self.direct_result_nodes):
-            print r
-        print "Fetchplan Results:"
-        for r in chain(self.fetchplan_result_edges, self.fetchplan_result_nodes):
-            print r
+    @property
+    def all_results(self):
+        """ Returns an iterator over all results """
+        return self.result_map.itervalues()
+    
+    @property
+    def edges(self):
+        """ Returns an iterator over all results """
+        return ifilter(lambda r: r.is_edge, self.result_map.itervalues())
+
+    @property
+    def nodes(self):
+        """ Returns an iterator over all results """
+        return ifilter(lambda r: not r.is_edge, self.result_map.itervalues())
 
 if __name__ == '__main__':
     import pyorient
@@ -92,4 +80,5 @@ if __name__ == '__main__':
     q2 = "SELECT FROM #22:8257 LIMIT 10 FETCHPLAN *:3"
     for q in (q1, q2):
         rs = ResultSet.from_query(client, q)
-        rs._dump()
+        for r in rs.all_results:
+            print r
