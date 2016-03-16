@@ -8,10 +8,6 @@ import tempfile, os
 import pygraphviz
 
 from awg import ArabicWordGraph
-import pyorient.ogm as ogm
-
-def r2id(n):
-    return n._id[1:].replace(":", "_")
 
 class GraphvizRenderer(object):
     """
@@ -25,7 +21,8 @@ class GraphvizRenderer(object):
         self.drawn = []
 
     def build_graph_for_arabic_query(self, q):
-        res = self.graph.search_arabic_node(q, 100, "*:1")
+        res = self.graph.search_arabic(q, 100, "*:5")
+        result_nodes = list(res.index_results)
             
         # For each node:
         # - draw immediate neighbours with details
@@ -37,44 +34,50 @@ class GraphvizRenderer(object):
         nodes1, nodes2 = set(), set()
 
         # If there are several results, draw search node
-        if len(res) > 1:
+        if len(result_nodes) > 1:
             self.draw_search_node(q)
         
-        for r in res:
+        for r in result_nodes:
             self.draw_result(r)
-            if len(res) > 1:
+            if len(result_nodes) > 1:
                 self.draw_search_edge(q, r)
             
             # Follow outgoing edges
-            for e in r.outE():
-                if e.registry_name == "InformationEdge":
+            for e in r.outE:
+                if e.cls == "InformationEdge":
                     continue
-                nb = e.outV()
+                nb = e.in_
                 edges1.add(e)
                 nodes1.add(nb)
 
-                for e2 in nb.outE():
-                    if e2.registry_name == "InformationEdge":
+                for e2 in nb.outE:
+                    if e2.cls == "InformationEdge":
                         continue
-                    nodes2.add(e2.outV())
-                    edges2.add(e)
+                    nodes2.add(e2.in_)
+                    edges2.add(e2)
                         
             # Follow incoming edges, indegree is always one.
-            e = r.inE()[0]    
-            nb = e.inV()
+            e = r.inE[0]    
+            nb = e.out
             nodes1.add(nb)
             edges1.add(e)
-            while len(nb.inE()) > 0:
-                edges2.add(nb.inE()[0])
-                nb = nb.in_()[0]
+            while len(nb.inE) > 0:
+                edges2.add(nb.inE[0])
+                nb = next(nb.in_)
                 nodes2.add(nb)
         
         nodes2.difference_update(nodes1)
         edges2.difference_update(edges1)
         for n in nodes1:
-            self.draw_1st_nb(n)
+            if n.cls == "Root":
+                self.draw_root_node(n)
+            else:
+                self.draw_1st_nb(n)
         for n in nodes2:
-            self.draw_2nd_nb(n)
+            if n.cls == "Root":
+                self.draw_root_node(n)
+            else:
+                self.draw_2nd_nb(n)
         for e in edges1:
             self.draw_1st_nb_edge(e)
         for e in edges2:
@@ -82,40 +85,56 @@ class GraphvizRenderer(object):
 
 
     def draw_search_node(self, q):
-        self.draw_node(q, label = "SEARCH", shape = "plaintext")
+        #html = '<font color="red">%s</font>' % q
+        self.draw_node("SEARCH", q, shape = "oval", style = "filled", color = "darkslategrey", fontcolor="white", fontsize = 20)
 
     def draw_search_edge(self, q, n):
-        self.draw_edge(q, r2id(n))
+        self.draw_edge("SEARCH", n.rid, color = "darkslategrey")
 
-    def draw_result(self, n):
-        url = "show?node_id=%s" % r2id(n)
-        self.draw_node(r2id(n), label = "RESULT", URL = url,
+    def draw_result(self, n):   
+        url = "show?node_id=%s" % n.rid
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
+        s += '<TR><TD BGCOLOR="BLACK"><FONT COLOR="WHITE" POINT-SIZE="20">%s</FONT></TD></TR>' % n.data["label"]
+        translations = [e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge" ]
+        for t in translations:
+            s += '<TR><TD>%s</TD></TR>' % t
+        s += '</TABLE>'
+                
+        self.draw_node(n.rid, "<%s>" % s, URL = url,
                         shape = "plaintext")
 
     def draw_root_node(self, n):
-        url = "show?node_id=%s" % r2id(n)
-        self.draw_node(r2id(n), label = "ROOT", URL = url,
+        url = "show?node_id=%s" % n.rid
+        html = '<FONT COLOR="GREY" POINT-SIZE="30">%s</FONT>' % n.data["label"]
+        self.draw_node(n.rid, label = "<%s>" % html, URL = url,
                         shape = "plaintext")
     
     def draw_1st_nb(self, n):
-        url = "show?node_id=%s" % r2id(n)
-        self.draw_node(r2id(n), label = "%s (1)" % n.label, URL = url,
-                       shape = "plaintext")
+        url = "show?node_id=%s" % n.rid
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
+        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
+        t = next((e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge"), None)
+        if t:
+            s += '<TR><TD>%s</TD></TR>' % t
+        s += '</TABLE>'
+
+        self.draw_node(n.rid, label = "<%s>" % s, URL = url, shape = "plaintext")
 
     def draw_2nd_nb(self, n):
-        url = "show?node_id=%s" % r2id(n)
-        self.draw_node(r2id(n), label = "%s (2)" % n.label, URL = url,
-                        shape = "plaintext")
+        url = "show?node_id=%s" % n.rid
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
+        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
+        s += '</TABLE>'
+
+        self.draw_node(n.rid, label = "<%s>" % s, URL = url, shape = "plaintext")
     
     def draw_1st_nb_edge(self, e):
-        self.draw_edge(r2id(e.outV()), r2id(e.inV()))
+        self.draw_edge(e.out.rid, e.in_.rid)
     
     def draw_2nd_nb_edge(self, e):
-        self.draw_edge(r2id(e.outV()), r2id(e.inV()))
+        self.draw_edge(e.out.rid, e.in_.rid)
         
     def draw_node(self, name, label, **kwargs):
-        if type(label) != unicode:
-            label = label.decode("utf-8")
         print "N: %s (%s)" % (name, label)
         self.G.add_node(name, label = label, **kwargs) 
 
