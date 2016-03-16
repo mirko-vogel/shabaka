@@ -6,34 +6,9 @@
 
 import pyorient
 from pyarabic import araby
-from pyorient.otypes import OrientRecord
-
-def recursive_map(m, f, pred):
-    """
-    Recursively encodes unicode string in keys and values of given map thus
-    creating a new map and returns it.
-    
-    """
-    n = {}
-    for (k, v) in m.iteritems():
-        if pred(k): k = f(k)
-        if pred(v): v = f(v)
-        elif type(v) == list:
-            v = [f(x) for x in v if pred(x)]
-        if type(v) == map:
-            v = recursive_map(v)
-        n[k] = v
-
-    return n
-
-def encode_map(m):
-    """  Recursively encodes unicode string in keys and values """
-    return recursive_map(m, lambda x: x.encode("utf-8"), lambda x: type(x) == unicode)
-
-def deencode_map(m):
-    """  Recursively encodes unicode string in keys and values """
-    return recursive_map(m, lambda x: x.decode("utf-8"), lambda x: type(x) == str)
-
+from ResultSet import ResultSet
+from WrappedRecord import WrappedNode
+import Tools
 
 class ArabicWordGraph(object):
     """
@@ -48,29 +23,28 @@ class ArabicWordGraph(object):
         r = self.client.db_open(db_name, db_user, db_pwd, pyorient.DB_TYPE_GRAPH)
         self.cluster_ids = dict((c.name, c.id) for c in r)
 
-    def get_node(self, rid, limit = 100, fetchplan = "*:0"):
-        res = []
-        self.client.query("SELECT FROM %s" % rid, limit, fetchplan, lambda x: res.append(x))
-
-        return res
-
-    def search_arabic_node(self, q, limit = 100, fetchplan = "*:1"):
+    def search(self, q, limit = 100, fetchplan = "*:1"):
         """
-        Searches for a node with given label intelligently handling vocalization.
+        Runs a query against the label index, returns a ResultSet. 
+        
         """
-        res = []
+        query = "SELECT FROM index:Node.label where key = '%s'" \
+                "LIMIT %s FETCHPLAN %s" % (q, limit, fetchplan)
+        return ResultSet.from_query(self.client, query)
+
+    def search_arabic(self, q, limit = 100, fetchplan = "*:1"):
+        """
+        Searches for given label intelligently handling vocalization.
+        """
+        res = None
         # if word is vocalized, look for an exact match
         if araby.is_vocalized(q):
-            query = "SELECT FROM index:Node.label where key = '%s'" % q
-            self.client.query(query, limit, fetchplan, lambda x: res.append(x))
-            if res:
-                return res
+            res = self.search(q, limit, fetchplan)
             
         # search ignoring vocalization
-        query = "SELECT FROM index:ArabicNode.unvocalized_label WHERE key = '%s'" \
-                    % araby.strip_tashkeel(q)
-        self.client.query(query, limit, fetchplan, lambda x: res.append(x))
-        
+        if not res:
+            res = self.search(araby.strip_tashkeel(q), limit, fetchplan)
+
         return res
 
     
@@ -82,21 +56,21 @@ class ArabicWordGraph(object):
         try:
             kwargs["label"] = label
             return self.client.record_create(self.cluster_ids[_class],
-                                         encode_map(kwargs))
+                                         Tools.encode_map(kwargs))
         except:
             raise
 
     def create_edge(self, _class, src, tgt, **kwargs):
         """
         Creates edge of given class (string) between src and tgt either passed as
-        OrientDB objects or as RID strings.
+        WrappedNodes or as RID strings.
         """
-        if type(src) == OrientRecord:
-            src = src._OrientRecord__rid
-        if type(tgt) == OrientRecord:
-            tgt = tgt._OrientRecord__rid
+        if type(src) == WrappedNode:
+            src = src.rid
+        if type(tgt) == WrappedNode:
+            tgt = tgt.rid
         return self.client.command("CREATE EDGE %s from %s to %s CONTENT %s" % 
-                                   (_class, src, tgt, encode_map(kwargs)))
+                                   (_class, src, tgt, Tools.encode_map(kwargs)))
     
     def create_arabic_node(self, cluster_name, label, **kwargs):
         """
@@ -154,10 +128,14 @@ class ArabicWordGraph(object):
         
         
 if __name__ == '__main__':
+
     graph = ArabicWordGraph()
     # r = graph.add_root_node(u"ه ل ك")
     # n1 = graph.add_verb_node( u"اِسْتَهْلَكَ", "X", r)
     # n2 = graph.add_noun_node(u"اِسْتِهْلَاْكٌ", n1, edge_properties = {"type": "masdar"})
     # n3 = graph.add_noun_node(u"مُسْتَهْلِكٌ", n1, edge_properties = {"type": "pp"})
-    r = graph.search_arabic_node(u"َخَرَج")
-    r = graph.search_arabic_node(u"َخَرَج", 100, "*:4")
+    r = graph.search_arabic(u"أ ل ف",
+                                 100, "*:2")
+    r._dump()
+    r = graph.search_arabic(u"ألف", 10, "*:4")
+    r._dump()
