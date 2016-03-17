@@ -48,6 +48,9 @@ class WrappedRecord(object):
 
     def __str__(self):
         return unicode(self).encode("utf-8")
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.rid, self.cls)
     
     @property
     def is_edge(self):
@@ -161,6 +164,30 @@ class WrappedEdge(WrappedRecord):
     def out(self):
         """Returns adjacent outgoing node"""
         return self.data["out"]
+
+
+#######################################################################################
+## Fakes
+
+class FakeRecord(WrappedRecord):
+    def __init__(self, rid = None, cls = None, version = None, data = None):
+        self.rid = rid
+        self.cls = cls or type(self).__name__
+        self.version = version
+        self.data = data or dict()
+
+class FakeEdge(FakeRecord):
+    def __init__(self, from_, to, rid = None, cls = None, version = None, data = None):
+        super(FakeEdge, self).__init__(rid, cls, version, data)
+        self.in_ = to
+        self.out = from_
+
+    @property
+    def is_edge(self): return True
      
+class FakeNode(FakeRecord):
+    @property
+    def is_edge(self): return False
+
 if __name__ == '__main__':
     pass

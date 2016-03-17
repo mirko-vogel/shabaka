@@ -44,6 +44,21 @@ class ResultSet(object):
             r.update_links(self.result_map)
     
     @property
+    def first_result(self):
+        """
+        Returns the first result of the index results. If there are none, 
+        returns the first result. Returns None if there are no results.
+        
+        Note that the order of search results is arbitrary, so use this
+        function if you know that there is a single result or if you are happy
+        with a random one.
+        
+        """
+        r = next(self.index_results, None)
+        if not r:
+            return next(self.all_results, None)
+
+    @property
     def index_results(self):
         """
         Returns the results that where found by looking up in an index.

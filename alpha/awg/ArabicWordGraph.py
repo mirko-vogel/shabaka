@@ -33,9 +33,21 @@ class ArabicWordGraph(object):
         rs = ResultSet.from_query(self.client, query)
         return rs
 
+    def get_node(self, rid, limit = 100, fetchplan = "*:0"):
+        """
+        Returns a ResultSet
+        """
+        query = "SELECT FROM %s LIMIT %s FETCHPLAN %s" % (rid, limit, fetchplan)
+        rs = ResultSet.from_query(self.client, query)
+        return rs
+
+
     def search_arabic(self, q, limit = 100, fetchplan = "*:1"):
         """
         Searches for given label intelligently handling vocalization.
+        (This does not make much sense without a fetchplan as you will get
+        index nodes only.)
+        
         """
         res = None
         # if word is vocalized, look for an exact match
