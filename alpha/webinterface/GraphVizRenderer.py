@@ -56,6 +56,9 @@ class GraphvizRenderer(object):
                     nodes2.add(e2.in_)
                     edges2.add(e2)
                         
+            # Walk back to root - if not already there
+            if r.cls == "Root":
+                continue
             # Follow incoming edges, indegree is always one.
             e = r.inE[0]    
             nb = e.out
