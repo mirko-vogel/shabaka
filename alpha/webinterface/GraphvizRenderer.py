@@ -14,6 +14,13 @@ from awg.WrappedRecord import FakeEdge, FakeNode
 
 class GraphvizRenderer(object):
     """
+    Renderer backending to graphviz creating graphs in svg format.
+    
+    Queries an ArabicWordGraph to either search for a word or retrieve a single
+    node. In both cases, connected edges and nodes are retrieved from the db in
+    single query using a fetchplan.
+    
+    The result node or nodes are stored in self.result_nodes. 
     
     """
     def __init__(self, graph = None):
@@ -22,24 +29,35 @@ class GraphvizRenderer(object):
         self.graph = graph
         self.G = pygraphviz.AGraph(directed = True, overlap = "scale")
         self.object_drawer = GraphVizObjectDrawer(self.G)
+        self.result_nodes = []
 
     def build_graph_for_query(self, q):
+        """
+        Queries the arabic word graph and builds a graph containing a query
+        node connected to result nodes. If there is a single result node,
+        falls back to the drawing style used when building a graph for a single
+        node.
+         
+         """
         res = self.graph.search_arabic(q, 100, "*:5")
-        result_nodes = list(res.index_results)
-        if len(result_nodes) > 1:
-            self._build_graph_for_several_results(q, result_nodes)
-            
-        self.object_drawer.draw_objects()
+        self.result_nodes = list(res.index_results)
+        if len(self.result_nodes) > 1:
+            self._build_graph_for_query_results(q)
+            self.object_drawer.draw_objects()
     
     def build_graph_for_node(self, rid):
-        """ Builds a graph for a single node  """
+        """
+        Builds a graph for a single node.
+        
+        """
         rs = self.graph.get_node(rid, 100, "*:5")
         r = rs.result_map.get(rid)
         if r:
+            self.result_nodes = [r]
             self._build_graph_for_single_result(r)
             self.object_drawer.draw_objects()
 
-    def _build_graph_for_several_results(self, q, result_nodes):
+    def _build_graph_for_query_results(self, q):
         """
         Draws search node and connects it to result nodes draw with
         _build_graph_for_single_result.
@@ -49,7 +67,7 @@ class GraphvizRenderer(object):
         n = FakeNode(rid = "SEARCH", data = {"label": q})
         self.object_drawer.add_object(n, "n_search")
         
-        for r in result_nodes:
+        for r in self.result_nodes:
             e = FakeEdge(FakeNode(rid = "SEARCH"), r)
             self.object_drawer.add_object(e, "e_search")
             
@@ -108,11 +126,14 @@ class GraphvizRenderer(object):
             self.object_drawer.add_object(parent, "n2")
 
     def render_graph(self, format = "svg"):
-        path = tempfile.mktemp(suffix = ".svg")
+        path = tempfile.mktemp(suffix = ".%s" % format)
         self.render_graph_to_disk(path, format)
-        file_content = open(path).readlines()
+        s = open(path).read()
         os.unlink(path)
-        return file_content
+        
+        if format == "svg":
+            return "\n".join(s.split("\n")[6:])
+        return s
 
     def render_graph_to_disk(self, path, format = "svg"):
         """ Layouts graph and writes is in given format to path """
@@ -167,8 +188,6 @@ class GraphVizObjectDrawer(object):
             print o.rid, h.__name__
             h(o)
 
-
-
     ##################################################################
     ## Drawing handlers for edges
 
@@ -184,13 +203,16 @@ class GraphVizObjectDrawer(object):
     ##################################################################
     ## Drawing handlers for nodes
 
+    def _rid2url(self, rid):
+        return "show?rid=%s" % rid[1:]  # Remove '#'
+
+
     def draw_node_search(self, n):
         #html = '<font color="red">%s</font>' % q
         self.add_node(n.rid, n.data["label"],
                       shape = "oval", style = "filled", color = "darkslategrey", fontcolor="white", fontsize = 20)
 
-    def draw_node_result(self, n):   
-        url = "show?node_id=%s" % n.rid
+    def draw_node_result(self, n):
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
         s += '<TR><TD BGCOLOR="BLACK"><FONT COLOR="WHITE" POINT-SIZE="20">%s</FONT></TD></TR>' % n.data["label"]
         translations = [e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge" ]
@@ -198,17 +220,16 @@ class GraphVizObjectDrawer(object):
             s += '<TR><TD>%s</TD></TR>' % t
         s += '</TABLE>'
                 
-        self.add_node(n.rid, "<%s>" % s, URL = url, shape = "plaintext")
+        self.add_node(n.rid, "<%s>" % s, URL = self._rid2url(n.rid),
+                      shape = "plaintext")
 
 
     def draw_node_root(self, n):
-        url = "show?node_id=%s" % n.rid
         html = '<FONT COLOR="GREY" POINT-SIZE="30">%s</FONT>' % n.data["label"]
-        self.add_node(n.rid, label = "<%s>" % html, URL = url,
+        self.add_node(n.rid, label = "<%s>" % html, URL = self._rid2url(n.rid),
                         shape = "plaintext")
     
     def draw_node_1(self, n):
-        url = "show?node_id=%s" % n.rid
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
         s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
         t = next((e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge"), None)
@@ -216,15 +237,16 @@ class GraphVizObjectDrawer(object):
             s += '<TR><TD>%s</TD></TR>' % t
         s += '</TABLE>'
 
-        self.add_node(n.rid, label = "<%s>" % s, URL = url, shape = "plaintext")
+        self.add_node(n.rid, label = "<%s>" % s,  URL = self._rid2url(n.rid),
+                      shape = "plaintext")
 
     def draw_node_2(self, n):
-        url = "show?node_id=%s" % n.rid
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
         s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
         s += '</TABLE>'
 
-        self.add_node(n.rid, label = "<%s>" % s, URL = url, shape = "plaintext")
+        self.add_node(n.rid, label = "<%s>" % s,  URL = self._rid2url(n.rid),
+                      shape = "plaintext")
     
     ##################################################################################
     ## For debuggung

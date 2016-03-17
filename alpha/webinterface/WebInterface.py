@@ -7,7 +7,7 @@
 import cherrypy
 from Cheetah.Template import Template
 from awg import ArabicWordGraph
-from webinterface import GraphVizRenderer
+from GraphvizRenderer import GraphvizRenderer
 
 class GraphvizWebinterface(object):
     """
@@ -17,19 +17,37 @@ class GraphvizWebinterface(object):
         if not graph:
             graph = ArabicWordGraph()
         self.graph = graph
-    
+
+    @cherrypy.expose
+    def index(self):
+        raise cherrypy.HTTPRedirect("show?rid=14:7015")
+
+    @cherrypy.expose
     def search(self, q):
-        pass
+        renderer = GraphvizRenderer()
+        renderer.build_graph_for_query(q)
+        
+        vars = { "node": None,
+                "svg": renderer.render_graph() }
+        
+        tmpl = file("web/templates/graphviz.tmpl").read().decode("utf-8")
+        t = Template(tmpl, searchList = [vars])
+        return unicode(t).encode("utf8")
     
-    @cherrypy.exposed
+    @cherrypy.expose
     def show(self, rid):
-        self.graph.get_node(rid, fetchplan = "*:3")
-        renderer = GraphVizRenderer()
+        renderer = GraphvizRenderer()
+        renderer.build_graph_for_node("#" + rid)
         
-        vars = { "entry": center_node.entry, "svg": "\n".join(svg_lines[6:]) }
+        vars = { "node": renderer.result_nodes[0],
+                "svg": renderer.render_graph() }
         
-        tmpl = file("templates/show_entry.tmpl").read().decode("utf-8")
+        tmpl = file("web/templates/graphviz.tmpl").read().decode("utf-8")
         t = Template(tmpl, searchList = [vars])
         return unicode(t).encode("utf8")
 
+if __name__ == '__main__':
+    wi = GraphvizWebinterface()
+    
+    cherrypy.quickstart(wi, '/', "cherrypy.conf")
         
