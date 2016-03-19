@@ -5,7 +5,7 @@
 '''
 
 import urllib2
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 from ExternalDataProvider import ExternalDataQuery 
 
 class WebQuery(ExternalDataQuery):
@@ -23,8 +23,17 @@ class WebQuery(ExternalDataQuery):
         request.add_header('User-Agent', 'ShabakaWebQuery/0.1 +http://shabaka.redredblue.de')
         doc = urllib2.build_opener().open(request).read()
 
-        bs = BeautifulSoup(doc)
+        bs = BeautifulSoup(doc, parse_only = self._get_soupstrainer())
         self._result = self.parse_webpage(bs)
+
+    def _get_soupstrainer(self):
+        """
+        Returns a SoupStrainer object to be passed to the BeautifulSoup
+        constructor. Default implementation returns None, overwrite to speed up
+        parsing.
+        
+        """
+        return None
 
     def parse_webpage(self, bs):
         """ Parses the webpage passed as an BeautifulSoup object and returns a unicode """

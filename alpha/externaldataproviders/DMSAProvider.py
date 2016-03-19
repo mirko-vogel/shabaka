@@ -4,10 +4,12 @@
 @author: mirko
 '''
 
-from WebQuery import WebQuery
-from ExternalDataProvider import ExternalDataProvider
+from bs4 import SoupStrainer
 
-class DMSAQuery(WebQuery):
+from WebQuery import WebQuery
+from ExternalDataProvider import ExternalDataProvider, ExternalArabicDataQuery
+
+class DMSAQuery(WebQuery, ExternalArabicDataQuery):
     """ 
     Represent an asynchronous query to معجم اللغة العربية المعاصرة 
     via arabdict.com
@@ -16,16 +18,16 @@ class DMSAQuery(WebQuery):
     def parse_webpage(self, bs):
         """ Parses the webpage passed as an BeautifulSoup object and returns a unicode """
 
-        for div in bs.findAll("div", {"class": "dataRecord dict_1"}):
+        for div in bs.find_all("div", class_ = "dataRecord dict_1"):
             try:
-                s = div.find("div", {"class": "termarAbicAr"}).text
-                # TODO: Improve results filtering, check for "compatible" tashkeel"
-                if s != self.query_string:  
+                s = div.find("div", class_ = "termarAbicAr").text
+                if not self._matches_query(s):  
                     continue
 
-                definition_div = div.find("div", {"class": "termDefintion"})
+                definition_div = div.find("div", class_ = "termDefintion")
                 # TODO: Investigate this hack ...
-                t = u"\n•".join(definition_div.text.split(u"•"))
+                lines = definition_div.text.replace("\n", "").split(u"•")
+                t = u"\n".join(l.strip(u"،") for l in lines)
                 
                 # Eventually strip المزيد ...
                 more_link = definition_div.find("a")                
@@ -37,6 +39,19 @@ class DMSAQuery(WebQuery):
             except: pass
 
         return ""
+
+    def _get_soupstrainer(self):
+        return SoupStrainer("div", class_ = "dataRecord dict_1")
+
+    @property
+    def result_as_html(self):
+        """ Returns the result as html """
+        result_lines = self.result.split("\n")
+        if len(result_lines) == 1:
+            return result_lines[0]
+    
+        meanings = "\n".join("<li>%s</li>" % l for l in result_lines[1:])
+        return "%s<ul>%s</ul>" % (result_lines[0], meanings)
         
     @property
     def url(self):

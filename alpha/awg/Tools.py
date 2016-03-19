@@ -5,6 +5,7 @@
 '''
 from io import BytesIO
 from struct import unpack
+from pyarabic import araby
 
 def recursive_map(m, f, pred):
     """
@@ -37,3 +38,38 @@ def rid_data_to_rids(data):
     (a,l) = unpack("!bi", stream.read(5))
     return ["#%d:%d" % unpack("!hq", stream.read(10))]
 
+def vocalized_like(w1, w2, ignore_shaddas = False):
+    """
+    Returns if two arabic unicode strings have compatible vocalization.
+    
+    Per default, shaddas are considered as characters and must be matched. Set
+    ignore_shaddas to True to consider them as harakat and this inore them. 
+    
+    Adapted from pyarabic.araby.vocalized_similarity
+
+    >>> vocalized_like(u"ألف", u"ألّف")
+    False
+    >>> vocalized_like(u"ألف", u"ألّف", True)
+    True
+    
+    """
+    
+    pop = lambda x: x.pop() if x else None
+    w1, w2 = list(w1), list(w2)
+    c1, c2 = pop(w1), pop(w2)
+
+    vowels = list(araby.HARAKAT)
+    if ignore_shaddas:
+        vowels.append(araby.SHADDA)
+        
+    while c1 or c2:
+        if c1 == c2:
+            c1, c2 = pop(w1), pop(w2)
+        elif c1 in vowels and c2 not in vowels:
+            c1 = pop(w1)
+        elif c1 not in vowels and c2 in vowels:
+            c2 = pop(w2)
+        else:
+            return False
+            
+    return True 

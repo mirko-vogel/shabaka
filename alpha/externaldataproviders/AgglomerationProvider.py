@@ -14,3 +14,6 @@ class AgglomerationProvider(object):
     def query(self, query_string):
         """ Returns a list of results, one for every known provider. """
         return [P.query(query_string) for P in self.providers]
+
+
+        

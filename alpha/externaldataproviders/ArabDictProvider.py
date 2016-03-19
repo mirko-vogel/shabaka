@@ -5,12 +5,12 @@
 '''
 
 from WebQuery import WebQuery
-from ExternalDataProvider import ExternalDataProvider
+from ExternalDataProvider import ExternalDataProvider, ExternalArabicDataQuery
 
 import sys, itertools
 from pyarabic import araby
 
-class ArabDictQuery(WebQuery):
+class ArabDictQueryBase(WebQuery, ExternalArabicDataQuery):
     """ 
     Represent an asynchronous query to arabdict.com
     
@@ -19,23 +19,28 @@ class ArabDictQuery(WebQuery):
         """ Parses the webpage passed as an BeautifulSoup object and returns a unicode """
         translations = []
 
-        for n in itertools.count(1):
-            div = bs.find("div", id = "div_%s"  % n)
-            if not div:
-                break
-            
+        for div in bs.find_all("div", id = self._div_id_matcher):
             try:
                 s = div.find("a", {"class": "arabic-term"}).text
                 t = div.find("a", {"class": "latin-term"}).text
 
-                # TODO: Improve results filtering, check for "compatible" tashkeel"
-                if araby.strip_tashkeel(self.query_string) == araby.strip_tashkeel(s): 
+                if self._matches_query(s):
                     translations.append(t)
                 
             except: pass
         
         return ", ".join(translations)
+
+    def _get_soupstrainer(self):
+        """ See WebQuery._get_soupstrainer """
+        return SoupStrainer("div", id = self._div_id_matcher)
     
+    @staticmethod
+    def _div_id_matcher(id):
+        return id and id[0:4] == "div_" and id[4:].isdigit()
+    
+
+class GermanArabDictQuery(ArabDictQueryBase):
     @property
     def url(self):
         """ Returns the query url as unicode string """
@@ -43,13 +48,30 @@ class ArabDictQuery(WebQuery):
                 % self.query_string
 
 
-class ArabDictProvider(ExternalDataProvider):
+class EnglishArabDictQuery(ArabDictQueryBase):
+    @property
+    def url(self):
+        """ Returns the query url as unicode string """
+        return "http://www.arabdict.com/en/english-arabic/%s" \
+                % self.query_string
+
+
+class GermanArabDictProvider(ExternalDataProvider):
     """ Wrapper around ExternalDataProvider to use ArabicDictQuery for queries. """
-    QueryClass = ArabDictQuery
+    QueryClass = GermanArabDictQuery
 
     @property
-    def name(self):  return "ArabDict" 
+    def name(self):  return "arabdict.de" 
+
+
+class EnglishArabDictProvider(ExternalDataProvider):
+    """ Wrapper around ExternalDataProvider to use ArabicDictQuery for queries. """
+    QueryClass = EnglishArabDictQuery
+
+    @property
+    def name(self):  return "arabdict.com" 
+
 
 if __name__ == '__main__':
-    ArabDictProvider().run_cli()
+    GermanArabDictProvider().run_cli()
 

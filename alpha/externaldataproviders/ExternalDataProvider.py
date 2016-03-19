@@ -5,6 +5,7 @@
 '''
 from threading import Thread
 import sys
+import awg.Tools
 
 class ExternalDataQuery(Thread):
     """
@@ -29,12 +30,21 @@ class ExternalDataQuery(Thread):
         """
         self.join()
         return self._result
+
+    @property
+    def result_as_html(self):
+        """ Returns the result as html, rendering lines as paragraphs """
+        return "\n".join("<p>%s</p>" % l for l in self.result.split("\n"))
         
     @property
     def provider(self):
         """ Returns the name of the provider """
         return self._provider.name
-    
+
+class ExternalArabicDataQuery(ExternalDataQuery):    
+    def _matches_query(self,s):
+        """ Returns true if tashkeel is compatible and shaddas match"""
+        return awg.Tools.vocalized_like(self.query_string, s)
 
 class ExternalDataProvider(object):
     """

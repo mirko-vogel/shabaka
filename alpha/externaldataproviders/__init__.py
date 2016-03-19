@@ -1,6 +1,6 @@
 from DMSAProvider import DMSAProvider
-from ArabDictProvider import ArabDictProvider
+from ArabDictProvider import GermanArabDictProvider, EnglishArabDictProvider
 
-ALL_PROVIDERS = (DMSAProvider, ArabDictProvider)
+ALL_PROVIDERS = (DMSAProvider, GermanArabDictProvider, EnglishArabDictProvider)
 from AgglomerationProvider import AgglomerationProvider
     
