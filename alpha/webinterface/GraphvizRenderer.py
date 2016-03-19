@@ -213,7 +213,7 @@ class GraphVizObjectDrawer(object):
                       shape = "oval", style = "filled", color = "darkslategrey", fontcolor="white", fontsize = 20)
 
     def draw_node_result(self, n):
-        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
         s += '<TR><TD BGCOLOR="BLACK"><FONT COLOR="WHITE" POINT-SIZE="20">%s</FONT></TD></TR>' % n.data["label"]
         translations = [e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge" ]
         for t in translations:
@@ -230,7 +230,7 @@ class GraphVizObjectDrawer(object):
                         shape = "plaintext")
     
     def draw_node_1(self, n):
-        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
         s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
         t = next((e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge"), None)
         if t:
@@ -241,8 +241,8 @@ class GraphVizObjectDrawer(object):
                       shape = "plaintext")
 
     def draw_node_2(self, n):
-        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0">'
-        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
+        s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
+        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s&nbsp;&nbsp;</FONT></TD></TR>' % n.data["label"]
         s += '</TABLE>'
 
         self.add_node(n.rid, label = "<%s>" % s,  URL = self._rid2url(n.rid),
@@ -262,14 +262,14 @@ class GraphVizObjectDrawer(object):
 
  
 if __name__ == '__main__':
+    renderer = GraphvizRenderer()
+    renderer.build_graph_for_node("#14:7015") #Root
+    renderer.render_graph_to_disk("test2.svg") 
+
     q = u"ألف"
     renderer = GraphvizRenderer()
     renderer.build_graph_for_query(q)
     renderer.render_graph_to_disk("test.svg")       
-
-    renderer = GraphvizRenderer()
-    renderer.build_graph_for_node("#14:7015") #Root
-    renderer.render_graph_to_disk("test2.svg") 
     
     renderer = GraphvizRenderer()
     renderer.build_graph_for_node("#15:39477")

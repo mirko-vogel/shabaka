@@ -4,11 +4,10 @@
 @author: mirko
 '''
 
+from bs4 import SoupStrainer
+
 from WebQuery import WebQuery
 from ExternalDataProvider import ExternalDataProvider, ExternalArabicDataQuery
-
-import sys, itertools
-from pyarabic import araby
 
 class ArabDictQueryBase(WebQuery, ExternalArabicDataQuery):
     """ 

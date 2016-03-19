@@ -10,6 +10,9 @@ body
     margin: 0px;
 }
 
+a:link, a:visited {text-decoration: none}
+a:hover {text-decoration: underline}
+
 /* Header */
 
 #header
@@ -75,7 +78,7 @@ input[type=submit]
 .sideBar
 {
     float:right;
-    width: 300px;
+    width: 400px;
     height: 100%;
     background: black;
     color: white;
@@ -103,17 +106,21 @@ input[type=submit]
 
 .citation_form {
     line-height: 60px;
-    font-size: 30px;
+    font-size: 40px;
 }
 
 .sbElementHeader {
     border-top: 1px solid grey;
     font-size: 14px;
     color: grey;
+    margin-bottom: 5px;
 }
 
+.sbElementHeader a:link, a:visited {color: grey;}
+
 .sbElementContent {
-    font-size: 15pt;
+    line-height: 30px;
+    font-size: 20px;
 }
 
 

@@ -44,6 +44,7 @@
           translations from elixirfm
 	    </div>
         <div class="sbElementContent">
+        $unicode.join(u", ", [e.in_.data["label"] for e in $node.outE if e.cls == "InformationEdge" ])
 	    </div>
       </div>
 
@@ -59,25 +60,6 @@
 	      </div>
 	    #end if
 	  #end for
-
-      <div class="sbElementContainer">
-        <div class="sbElementHeader">
-          stem
-	</div>
-        <div class="sbElementContent">
-          
-	</div>
-      </div>
-
-      <div class="sbElementContainer">
-        <div class="sbElementHeader">
-          
-	</div>
-        <div class="sbElementContent">
-          
-	</div>
-      </div>
-
     </div>
 #end if
     <div id="content" class="content">
