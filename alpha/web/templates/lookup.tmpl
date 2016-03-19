@@ -26,11 +26,7 @@
 #for r in $results:
 <div>
   <h1> <a href="$r.url"> $r.provider </a> </h1>
-  #for p in $r.result.split("\n")
-    <p>
-    $p
-    </p>
-  #end for
+  $r.result_as_html
 </div>
 #end for
 </div>

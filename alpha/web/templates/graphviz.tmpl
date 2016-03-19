@@ -41,20 +41,24 @@
 
       <div class="sbElementContainer">
         <div class="sbElementHeader">
-        translations from elixirfm
-	</div>
+          translations from elixirfm
+	    </div>
         <div class="sbElementContent">
-	</div>
+	    </div>
       </div>
 
-      <div class="sbElementContainer">
-        <div class="sbElementHeader">
-          part of speech
-	</div>
-        <div class="sbElementContent">
-          
-	</div>
-      </div>
+      #for r in $external_data:
+      	#if $r.result:
+	      <div class="sbElementContainer">
+	        <div class="sbElementHeader">
+	          <a href="$r.url"> $r.provider </a>
+            </div>
+	        <div class="sbElementContent">
+			$r.result_as_html
+		    </div>
+	      </div>
+	    #end if
+	  #end for
 
       <div class="sbElementContainer">
         <div class="sbElementHeader">

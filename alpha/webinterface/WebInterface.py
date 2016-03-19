@@ -8,6 +8,7 @@ import cherrypy
 from Cheetah.Template import Template
 from awg import ArabicWordGraph
 from GraphvizRenderer import GraphvizRenderer
+from externaldataproviders import AgglomerationProvider
 
 class GraphvizWebinterface(object):
     """
@@ -17,6 +18,7 @@ class GraphvizWebinterface(object):
         if not graph:
             graph = ArabicWordGraph()
         self.graph = graph
+        self.agglomeration_provider = AgglomerationProvider()
 
     @cherrypy.expose
     def index(self):
@@ -39,8 +41,12 @@ class GraphvizWebinterface(object):
         renderer = GraphvizRenderer()
         renderer.build_graph_for_node("#" + rid)
         
-        vars = { "node": renderer.result_nodes[0],
-                "svg": renderer.render_graph() }
+        node = renderer.result_nodes[0]
+        external_data = self.agglomeration_provider.query(node.data["label"])
+        
+        vars = { "node": node,
+                "svg": renderer.render_graph(),
+                "external_data": external_data }
         
         tmpl = file("web/templates/graphviz.tmpl").read().decode("utf-8")
         t = Template(tmpl, searchList = [vars])

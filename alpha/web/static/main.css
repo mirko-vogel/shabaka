@@ -95,7 +95,7 @@ input[type=submit]
 
 /* Side bar element formatting */
 
-.sbElementContainer {
+.sbElementContainer, li {
     margin: 15px;
     text-align: right;
     direction: rtl;
