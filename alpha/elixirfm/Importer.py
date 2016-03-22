@@ -27,7 +27,7 @@ class Importer(object):
     
         N = len(entries_by_roots)
         for (n, (root, entries)) in enumerate(entries_by_roots.iteritems()):
-            sys.stdout.write("\rImporting root %d/%d" % (n, N))
+            sys.stdout.write("\rImporting root %d/%d" % (n + 1, N))
             try:
                 self.import_root(root, entries)
             except RuntimeError as e:
@@ -63,26 +63,25 @@ class Importer(object):
         root_node = self.graph.add_root_node(" ".join(root))
         
         entries_by_stem = defaultdict(list)
+        stemless_entries = []
         for e in entries:
-            entries_by_stem[e.stem].append(e)
-        
-        for (stem, stem_entries) in entries_by_stem.iteritems():
-            if stem:
-                # Subgraphs by verb stem are handled be StemNode
-                self.import_stem(root_node, stem_entries)
+            if e.stem:
+                entries_by_stem[e.stem].append(e)
             else:
-                # Others connect directly to root
-                for e in stem_entries:
-                    v = self.graph.add_noun_node(e.citation_form, root_node,
-                                            {"pattern": e.pattern})
-                    self.add_translations(v, e.entry_type, e.translations)
-                
-                
+                stemless_entries.append(e)
+        
+        # Import stems, build hierarchy below verb and store created noun nodes
+        created_noun_nodes = []
+        for (stem, stem_entries) in entries_by_stem.iteritems():
+            created_noun_nodes += self.import_stem(root_node, stem_entries)
+            
+        self.add_nouns(stemless_entries, created_noun_nodes, root_node)
+                    
     
     def import_stem(self, root_node, entries):
         """
         Creates graph consisting of entries derived from the same stem
-        Return tuple (created nodes, created edges)
+        Return a list of created noun nodes.
         
         TODO: Deal with several verbs: استجاب / استجوب
         """
@@ -103,21 +102,40 @@ class Importer(object):
         # HACK: use first verb node
         verb_node = verb_nodes[0]
 
+        # Add remaining nodes - must be nouns
+        created_noun_nodes = []
+        self.add_nouns(entries, created_noun_nodes, verb_node)
+        return created_noun_nodes
+
+
+    def add_nouns(self, entries, created_noun_nodes, fallback_node):
+        """
+        Adds noun nodes for the given entries connecting them by
+        NounDerivationEdges to the most suitable parents. Potential parents are
+        the noun nodes created from the given entries, the nodes passed as
+        created_noun_nodes and the fallback_node.
+        
+        Entries that are verbs are ignored.
+        
+        The nodes added to the Graph are added to created_noun_nodes, too.
+
+        """        
         # Classify words according to pattern components
-        created_nodes = []
         remaining_entries_by_pattern = [defaultdict(list) for i in range(5)]
         for e in entries:
-            if e.is_verb: continue
+            if e.is_verb:
+                continue
             l = e.pattern.count(" |< ")
             remaining_entries_by_pattern[l][e.pattern].append(e)
                     
         for entry_group in remaining_entries_by_pattern:
             for (pattern, entries) in entry_group.iteritems():
                 # Look for parent
-                parent = next((p for p in reversed(created_nodes)
-                              if pattern.find(p.pattern) >= 0), verb_node)
+                parent = next((p for p in reversed(created_noun_nodes)
+                              if pattern.find(p.data["pattern"]) >= 0),
+                              fallback_node)
                 n = self.graph.add_noun_node(entries[0].citation_form, parent, {"pattern": pattern})
-                created_nodes.append(n)
+                created_noun_nodes.append(n)
                 for e in entries:
                     self.add_translations(n, e.entry_type, e.translations)
 

@@ -128,6 +128,14 @@ class WrappedNode(WrappedRecord):
         """Returns adjacent edges"""
         return chain(self.inE, self.outE)
 
+    def traverse_children(self, pred):
+        """ Recursively yields children satisfying given predicate """
+        for n in self.out:
+            if pred(n):
+                yield n
+                n.traverse_children(pred)
+
+
 class WrappedEdge(WrappedRecord):
     def update_links(self, map):
         """

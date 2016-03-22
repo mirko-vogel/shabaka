@@ -7,7 +7,7 @@
 import pyorient
 from pyarabic import araby
 from ResultSet import ResultSet
-from WrappedRecord import WrappedNode
+from WrappedRecord import WrappedNode, WrappedEdge
 import Tools
 
 class ArabicWordGraph(object):
@@ -64,27 +64,27 @@ class ArabicWordGraph(object):
     
     def create_node(self, _class, label, **kwargs):
         """
-        Creates node, handles conversion of unicode strings
+        Creates node, handles conversion of unicode strings.
+        Returns a WrappedNode.
         
         """
-        try:
-            kwargs["label"] = label
-            return self.client.record_create(self.cluster_ids[_class],
-                                         Tools.encode_map(kwargs))
-        except:
-            raise
+        kwargs["label"] = label
+        r = self.client.record_create(self.cluster_ids[_class],
+                                      Tools.encode_map(kwargs))
+        return WrappedNode(r)
 
     def create_edge(self, _class, src, tgt, **kwargs):
         """
         Creates edge of given class (string) between src and tgt either passed as
-        WrappedNodes or as RID strings.
+        WrappedNodes or as RID strings. Returns a WrappedEdge.
         """
         if type(src) == WrappedNode:
             src = src.rid
         if type(tgt) == WrappedNode:
             tgt = tgt.rid
-        return self.client.command("CREATE EDGE %s from %s to %s CONTENT %s" % 
-                                   (_class, src, tgt, Tools.encode_map(kwargs)))
+        r = self.client.command("CREATE EDGE %s from %s to %s CONTENT %s" % 
+                                (_class, src, tgt, Tools.encode_map(kwargs)))
+        return WrappedEdge(r[0])
     
     def create_arabic_node(self, cluster_name, label, **kwargs):
         """
@@ -118,7 +118,7 @@ class ArabicWordGraph(object):
         return self.create_arabic_node("root", label, **kwargs)
 
     def add_verb_node(self, label, stem, derived_from, node_properties = {}, edge_properties = {}):
-        edge_properties[stem] = stem
+        edge_properties["stem"] = stem
         (n, e) = self.create_derived_node("verb", label, derived_from,
                               "verbderivationedge", node_properties, edge_properties)
         return n

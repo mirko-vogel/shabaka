@@ -39,6 +39,16 @@
         </div>
       </div>
 
+#if $node.data.get("pattern")
+      <div class="sbElementContainer">
+        <div class="sbElementHeader">
+          pattern
+	    </div>
+        <div class="sbElementContent">
+          $node.data.pattern
+	    </div>
+      </div>
+#end if      
       <div class="sbElementContainer">
         <div class="sbElementHeader">
           translations from elixirfm

@@ -73,3 +73,7 @@ def vocalized_like(w1, w2, ignore_shaddas = False):
             return False
             
     return True 
+
+def stem_to_int(s):
+    return {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6,
+        "VII": 7, "VIII": 8, "IX": 9, "X": 10}.get(s)

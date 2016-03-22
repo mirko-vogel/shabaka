@@ -181,6 +181,16 @@ class GraphVizObjectDrawer(object):
         for (o, fmts) in self.objects.iteritems():
             if o.is_edge:
                 self.draw_object(o, fmts)
+                
+        #verbs = [n.rid for n in self.objects
+        #         if not n.is_edge and n.inE and n.inE[0].cls == "VerbDerivationEdge"]
+        #self.G.subgraph(verbs,
+        #        name="cluster1",
+        #        style='filled',
+        #        color='lightgrey',
+        #        label='cluster 1 label')
+        
+
             
     def draw_object(self, o, fmts):
             h = next(h for (fmt, h) in self.drawing_handlers
@@ -213,6 +223,11 @@ class GraphVizObjectDrawer(object):
                       shape = "oval", style = "filled", color = "darkslategrey", fontcolor="white", fontsize = 20)
 
     def draw_node_result(self, n):
+        label = n.data["label"]
+        try:
+            if n.inE[0].cls == "VerbDerivationEdge":
+                label = "%s&nbsp;&nbsp;<b>%s</b>" % (label, n.inE[0].data["stem"])
+        except: pass
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
         s += '<TR><TD BGCOLOR="BLACK"><FONT COLOR="WHITE" POINT-SIZE="20">%s</FONT></TD></TR>' % n.data["label"]
         translations = [e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge" ]
@@ -230,8 +245,13 @@ class GraphVizObjectDrawer(object):
                         shape = "plaintext")
     
     def draw_node_1(self, n):
+        label = n.data["label"]
+        try:
+            if n.inE[0].cls == "VerbDerivationEdge":
+                label = "%s&nbsp;&nbsp;<b>%s</b>" % (label, n.inE[0].data["stem"])
+        except: pass
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
-        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % n.data["label"]
+        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s</FONT></TD></TR>' % label
         t = next((e.in_.data["label"] for e in n.outE if e.cls == "InformationEdge"), None)
         if t:
             s += '<TR><TD>%s</TD></TR>' % t
@@ -241,8 +261,13 @@ class GraphVizObjectDrawer(object):
                       shape = "plaintext")
 
     def draw_node_2(self, n):
+        label = n.data["label"]
+        try:
+            if n.inE[0].cls == "VerbDerivationEdge":
+                label = "%s&nbsp;&nbsp;<b>%s</b>" % (label, n.inE[0].data["stem"])
+        except: pass
         s = '<TABLE CELLBORDER="1" BORDER="0" CELLSPACING="0" CELLPADDING="5">'
-        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s&nbsp;&nbsp;</FONT></TD></TR>' % n.data["label"]
+        s += '<TR><TD BGCOLOR="GREY"><FONT COLOR="WHITE" POINT-SIZE="16">%s&nbsp;&nbsp;</FONT></TD></TR>' % label
         s += '</TABLE>'
 
         self.add_node(n.rid, label = "<%s>" % s,  URL = self._rid2url(n.rid),
@@ -262,10 +287,11 @@ class GraphVizObjectDrawer(object):
 
  
 if __name__ == '__main__':
+    import sys
     renderer = GraphvizRenderer()
     renderer.build_graph_for_node("#14:7015") #Root
     renderer.render_graph_to_disk("test2.svg") 
-
+    sys.exit()
     q = u"ألف"
     renderer = GraphvizRenderer()
     renderer.build_graph_for_query(q)
