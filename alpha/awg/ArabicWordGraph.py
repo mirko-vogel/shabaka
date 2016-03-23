@@ -10,10 +10,45 @@ from ResultSet import ResultSet
 from WrappedRecord import WrappedNode, WrappedEdge
 import Tools
 
+
+SQL_GET_NODE = """
+select from %s 
+"""
+
+SQL_SEARCH = """
+SELECT EXPAND(rid) FROM index:%s where key = '%s'
+"""
+
+SQL_SEARCH_BY_TRANSLATION = """
+SELECT expand(rid.in()) from index:Node.label where key = '%s'
+"""
+
+# A node's subgraph is the subgraph induced by all words derived from the same
+# root in addition to their translation.
+
+# HACK: There must be a decent way to get these subgraphs
+SQL_GET_NODE_FETCH_SUBGRAPH = """
+select expand(bothE()) from (
+    traverse both(), bothE() FROM [ %s ]
+    while @class <> 'ForeignNode' )
+"""
+
+SQL_SEARCH_FETCH_SUBGRAPHS = """
+select expand(bothE()) from (
+    traverse both(), bothE() from (
+        SELECT EXPAND(rid) FROM index:%s where key = '%s' )
+    while @class <> 'ForeignNode' ) 
+"""
+
+
+
 class ArabicWordGraph(object):
     """
     
     """
+    DEFAULT_FETCHPLAN = "*:1"
+    DEFAULT_LIMIT = 1000
+    
     def __init__(self, db_name = "shabaka", db_user = "admin", db_pwd = "admin"):
         """
         Establishes connection to OrientDB
@@ -23,43 +58,88 @@ class ArabicWordGraph(object):
         r = self.client.db_open(db_name, db_user, db_pwd, pyorient.DB_TYPE_GRAPH)
         self.cluster_ids = dict((c.name, c.id) for c in r)
 
-    def search_index(self, q, index = "Node.label", limit = 100, fetchplan = "*:1"):
+    def search_index(self, q, fetch_subgraph = True, index = "Node.label", 
+                     limit = DEFAULT_LIMIT, fetchplan = DEFAULT_FETCHPLAN,
+                     primary_pred = None):
         """
-        Runs a query against the label index, returns a ResultSet. 
+        Runs a query against the given index, returning a ResultSet. If no
+        predicate to differentiate between primary and secondary results is
+        passed, index hits are considered primary results.
         
         """
-        query = "SELECT FROM index:%s where key = '%s' " \
-                "LIMIT %s FETCHPLAN %s" % (index, q, limit, fetchplan)
-        rs = ResultSet.from_query(self.client, query)
+        if fetch_subgraph:
+            query = SQL_SEARCH_FETCH_SUBGRAPHS % (index, q)
+        else:
+            query = SQL_SEARCH % (index, q)
+
+        if not primary_pred:
+            primary_pred = lambda x: x.data.get(index.split(".")[-1]) == q
+
+        rs = ResultSet.from_query(self.client, query, limit, fetchplan, primary_pred)
         return rs
 
-    def get_node(self, rid, limit = 100, fetchplan = "*:0"):
+    def get_nodes(self, rids, fetch_subgraph = True, limit = DEFAULT_LIMIT,
+                 fetchplan = DEFAULT_FETCHPLAN):
         """
-        Returns a ResultSet
+        Returns a ResultSet consisting of nodes with given rids and their
+        subgraphs, unless you disable subgraph fetching.
+        
+        The nodes retrieved for the given rids are considered primary results.
+        
+        You will get an empty resultset:
+        - when retrieving a ForeignNode together with its subgraph
+          (because "a node's subgraph" is only defined for ArabicNodes)
+        - when the rids is unknown
+        - when rids is empty
+         
         """
-        query = "SELECT FROM %s LIMIT %s FETCHPLAN %s" % (rid, limit, fetchplan)
-        rs = ResultSet.from_query(self.client, query)
+        if not rids:
+            return ResultSet([])
+        
+        if fetch_subgraph:
+            query = SQL_GET_NODE_FETCH_SUBGRAPH % ", ".join(rids)
+        else:
+            query = SQL_GET_NODE % ",".join(rids)
+        rs = ResultSet.from_query(self.client, query, limit, fetchplan,
+                                  lambda x: x.rid in rids)
         return rs
 
 
-    def search_arabic(self, q, limit = 100, fetchplan = "*:1"):
+    def search_arabic(self, q, fetch_subgraph = True, limit = DEFAULT_LIMIT,
+                      fetchplan = DEFAULT_FETCHPLAN):
         """
         Searches for given label intelligently handling vocalization.
         (This does not make much sense without a fetchplan as you will get
         index nodes only.)
         
         """
-        res = None
-        # if word is vocalized, look for an exact match
-        if araby.is_vocalized(q):
-            res = self.search_index(q, limit = limit, fetchplan = fetchplan)
+        # If query is not vocalized, search unvocalized index and eventually
+        # return subtree
+        if not araby.is_vocalized(q):
+            return self.search_index(q, fetch_subgraph,
+                                     "ArabicNode.unvocalized_label", limit,
+                                     fetchplan)
             
-        # search ignoring vocalization
-        if not res:
-            res = self.search_index(araby.strip_tashkeel(q),
-                        "ArabicNode.unvocalized_label", limit, fetchplan)
+        # If it is vocalized, search unvocalized index and check for
+        # "compatibility" of vocalization
+        matches = self.search_index(araby.strip_tashkeel(q), False,
+                                    "ArabicNode.unvocalized_label", limit)
+        rids = [n.rid for n in matches.primary_results
+                if Tools.is_vocalized_like(q, n.data["label"])]
+        # Ignore vocalization if there is no compatible one
+        if not rids:
+            rids = [n.rid for n in matches.primary_results]
+        return self.get_nodes(rids, fetch_subgraph, limit, fetchplan)
 
-        return res
+    def search_foreign(self, q, limit = DEFAULT_LIMIT,
+                      fetchplan = "*:0"):
+        """
+        Returns a ResultSet consisting of nodes connected to ForeignNodes
+        whose label matches the query.
+        
+        """
+        sql = SQL_SEARCH_BY_TRANSLATION % q
+        return ResultSet.from_query(self.client, sql, limit, fetchplan) 
 
     
     def create_node(self, _class, label, **kwargs):
@@ -143,17 +223,18 @@ class ArabicWordGraph(object):
         
 if __name__ == '__main__':
 
-    graph = ArabicWordGraph()
+    G = ArabicWordGraph()
     # r = graph.add_root_node(u"ه ل ك")
     # n1 = graph.add_verb_node( u"اِسْتَهْلَكَ", "X", r)
     # n2 = graph.add_noun_node(u"اِسْتِهْلَاْكٌ", n1, edge_properties = {"type": "masdar"})
     # n3 = graph.add_noun_node(u"مُسْتَهْلِكٌ", n1, edge_properties = {"type": "pp"})
-    r = graph.search_arabic(u"أ ل ف",
-                                 100, "*:2")
-    #r._dump()
-    r = graph.search_arabic(u"ألف", 10, "*:3")
-    for n in r.index_results:
-        print n.cls, n.rid, n.data["label"]
-    print
-    for n in r.nodes:
-        print n.cls, n.rid, n.data["label"]
+    for r in (G.get_nodes(["#15:39797"], fetchplan = "*:1"), G.search_arabic(u"فضل"), G.search_arabic(u"فضّل")):
+        print len(r)
+                
+    for r in (G.get_nodes(["#13:45824"], False), G.search_arabic(u"فضل"), G.search_arabic(u"فضّل", False)):        
+        for n in r.primary_results:
+            print n.cls, n.rid, n.data["label"]
+        print
+        for n in r.secondary_results:
+            print n.cls, n.rid, n.data["label"]
+        print

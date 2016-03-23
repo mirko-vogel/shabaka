@@ -1,7 +1,110 @@
 #from awg.Tools import stem_to_int
- 
-#def render_external_data($d)
-	#for r in $d:
+
+#def render_not_found()
+<div class="msg">
+عفوا. لم نجد شيءً.
+<br>
+أبحثي عن شيء آخر!
+</div>
+#end def
+
+
+#def render_node($n)
+	<div class = "block">
+
+  #if $n.cls == "Root"
+    $render_root($n)
+  #elif $n.cls == "Verb"
+    $render_verb($n)
+	#else
+    $render_noun($n)
+  #end if
+
+  #if $n.cls != "Root"
+  	$render_external_data($n)
+  #end if
+  $render_derived_nouns($n)
+
+	</div>
+#end def
+
+
+#def render_verb($n)
+	<h1>
+    $verbstem_to_glyph($n.inE[0].data.stem)
+    <a href="show?rid=$n.rid[1:]"> $n.data.label </a>
+  </h1>
+	$render_derivation_source($n)
+	$render_translations($n)
+#end def
+
+#def render_noun($n)
+	<h1> <a href="show?rid=$n.rid[1:]"> $n.data.label </a> </h1>
+	$render_derivation_source($n)
+  $render_translations($n)
+#end def
+
+#def render_translations($n)
+	<div class="translations">
+		$print_translations($n)
+	</div>
+#end def
+
+#def print_translations($n)
+	<span class="translations">
+		$str.join(", ", (n.data["label"] for n in $n.out if n.cls == "ForeignNode"))
+	</span>
+#end def
+
+
+#def render_root($n)
+	<h1> <a href="show?rid=$n.rid[1:]"> $n.data.label </a> </h1>
+
+  #set stems = [(child.inE[0].data["stem"], child)
+                 for child in $n.out if child.cls == "Verb"]
+  #silent $stems.sort(key=lambda (s, n): stem_to_int(s))
+  #for (s, n) in $stems 
+	<div class="verbstem_block">
+	    <span class="verbstem_no">$verbstem_to_glyph($s) </span>
+	    <span class="verbstem"> <a href="show?rid=$n.rid[1:]"> $n.data.label </a> </span>
+	    <span class="translations">
+	      $str.join(", ", (t.data["label"] for t in n.out if t.cls == "ForeignNode"))
+	    </span>
+    </div>
+  #end for
+#end def
+
+#def render_derivation_source($n)
+  #if not $len($n.inE)
+    #return
+  #end if
+
+  #set $p = $next($n.in_)
+  <div class="derivation_source">
+  مشتق من
+ 		<a href="show?rid=$p.rid[1:]">$p.data.label</a>
+  </div>
+#end def
+
+#def render_derived_nouns($n)
+	#if $less_details
+		#return
+	#end if
+  #set $nouns = [c for c in $n.out if c.cls == "Noun"]
+  #if not $len($nouns)
+    #return
+  #end if
+	<h2> أسماء مشتقة </h2>
+	#for $child in $nouns
+ 		<a href="show?rid=$child.rid[1:]">$child.data.label</a>
+	#end for
+#end def
+
+#def render_external_data($n)
+	#if $less_details
+		#return
+	#end if
+	#for r in $ap.query($n.data["label"]):
 		#if not $r.result
 			#continue
 		#end if
@@ -10,9 +113,9 @@
 		  <div class="provider_name">  <a href="$r.url"> $r.provider </a> </div>
 		  <div class="provider_content"> 
 		  #if $r.provider.startswith("arabdict")
-			$r.result
+			  $r.result
 		  #else
-			$r.result_as_html
+			  $r.result_as_html
 		  #end if 
 		</div>
 		</div>
@@ -45,16 +148,18 @@
   div.block { width: 300px; float: right; padding: 10px;
               border: 1px solid black; margin: 20px}
 
-
+	div.msg { color: grey; text-align: center; margin-top: 100px; font-size: 50px; line-height:	80px}
   h1, div.derived_nouns, span.verbstem, span.verbstem_no, a:link, a:visited { color: #993366 }
-  h1 { font-size: 42px; margin-bottom: 20px; margin-top: 20px; padding-bottom: 20px; border-bottom: 1px solid black}
+  h1 { font-size: 42px; margin-bottom: 0px; margin-top: 20px; padding-bottom: 20px; border-bottom: 1px solid black}
   h2 { font-size: 20px; margin-bottom: 0px; margin-top: 20px;}
 
-  div.verbstem_block { line-height: 30px; margin-bottom: 10px	}
+  div.verbstem_block { line-height: 30px; margin-top: 10px; margin-bottom: 10px	}
   span.verbstem_no { }
   span.verbstem { font-weight: bold; color: white }
 
+  div.derivation_source { margin-top: 0px; font-size: 15px}
   div.derived_nouns {margin-top: 10px}
+  div.translations { margin-top: 10px}
   span.translations { }
 
   div.external_data {margin-top: 10px}
@@ -68,7 +173,7 @@
 
 <body>
 <div class = "header">
-<form action="lookup">
+<form action="search">
    البحث عن
   <input type="text" name="q" value="$query">
   <input type="submit" value="go">
@@ -77,56 +182,24 @@
 
 <div class="content">
 
+#set $nodes_to_render = $list($nodes_to_render)
 
-<div class = "block">
-<h1> $root </h1>
-#for (s, n) in $stems 
-	<div class="verbstem_block">
-	    <span class="verbstem_no">$verbstem_to_glyph($s) </span>
-	    <span class="verbstem"> <a href="show?rid=$n.rid[1:]"> $n.data.label </a> </span>
-	    <span class="translations">
-	      $str.join(", ", (t.data["label"] for t in n.out if t.cls == "ForeignNode"))
-	    </span>
-    </div>
-#end for
+#if $nodes_to_render
 
-<h2> أسماء مشتقة </h2>
-#for n in $root_derived_nouns
-  <a href="show?rid=$n.rid[1:]">$n.data.label</a>
-#end for
-
-</div>
+  #if $len($nodes_to_render) > 5
+    #set global $less_details = True
+	#else
+    #set global $less_details = False
+	#end if
 
 
-#if $verb_node
-<div class = "block">
+	#for n in $nodes_to_render
+		$render_node($n)
+	#end for
 
-<h1> $verbstem_to_glyph($verb_node.inE[0].data.stem) $verb_node.data.label </h1>
-<span class="translations">
-  $str.join(", ", (n.data["label"] for n in $verb_node.out if n.cls == "ForeignNode"))
-</span>
+#else
+  $render_not_found()
 
-$render_external_data($verb_data)
-
-<h2> أسماء مشتقة </h2>
-#for n in $verb_derived_nouns
-  <a href="show?rid=$n.rid[1:]">$n.data.label</a>
-#end for
-
-</div>
-#end if
-
-#if $noun_node:
-<div class = "block">
-
-<h1> $noun_node.data.label </h1>
-<span class="translations">
-  $str.join(", ", (n.data["label"] for n in $noun_node.out if n.cls == "ForeignNode"))
-</span>
-
-$render_external_data($noun_data)
-
-</div>
 #end if
 
 </div>

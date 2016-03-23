@@ -44,7 +44,7 @@ class ExternalDataQuery(Thread):
 class ExternalArabicDataQuery(ExternalDataQuery):    
     def _matches_query(self,s):
         """ Returns true if tashkeel is compatible and shaddas match"""
-        return awg.Tools.vocalized_like(self.query_string, s)
+        return awg.Tools.is_vocalized_like(self.query_string, s)
 
 class ExternalDataProvider(object):
     """

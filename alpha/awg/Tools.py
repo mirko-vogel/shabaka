@@ -38,7 +38,7 @@ def rid_data_to_rids(data):
     (a,l) = unpack("!bi", stream.read(5))
     return ["#%d:%d" % unpack("!hq", stream.read(10))]
 
-def vocalized_like(w1, w2, ignore_shaddas = False):
+def is_vocalized_like(w1, w2, ignore_shaddas = False):
     """
     Returns if two arabic unicode strings have compatible vocalization.
     
