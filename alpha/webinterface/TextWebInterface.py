@@ -24,10 +24,10 @@ class TextWebInterface(WebInterface):
         
         if araby.is_arabicstring(q):
             res = self.graph.search_arabic(q, True)
-            res._dump_stats()
+            #res._dump_stats()
         else:
             res = self.graph.search_foreign(q)
-            res._dump_stats()
+            #res._dump_stats()
             res = self.graph.get_nodes([n.rid for n in res.nodes], True)
 
         if res.has_single_primary_result:
