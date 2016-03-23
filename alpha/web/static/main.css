@@ -29,22 +29,22 @@ a:hover {text-decoration: underline}
 
 #title 
 {
-    font-family: monospace;
     margin-right: 10px;
+    color: white;
 
     position: absolute;
-    left:200px;
-    right:0;
-    top:0;
+    left:10px;
+    top:0px;
     height: 50px;
 }
 
+#title a { color: white; }
 
 #search 
 {
-    text-align: left;
-    width: 200px
-    height: 50px;
+    position: absolute;
+    right:10px;
+    top:0px;
     margin-left: 10px;
 }
 

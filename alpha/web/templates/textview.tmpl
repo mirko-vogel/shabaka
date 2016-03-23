@@ -171,13 +171,34 @@
   div.credit { position: fixed; bottom: 10; left: 10;	font-size: 20px }
   div.credit a {color: grey}
 
-	ul {margin-top: 5px}
-	li {margin-top: 5px}
+  ul {margin-top: 5px}
+  li {margin-top: 5px}
+
+
+  #title 
+  {
+    margin-right: 10px;
+    color: white;
+
+    position: absolute;
+    left:20px;
+    top:10px;
+    height: 50px;
+  }
+  #title a { color: white; }
   </style>
 </head>
 
 <body>
 <div class = "header">
+
+<div id="title">
+
+<a href="javascript: document.location.assign(document.location.href.replace('tx','gw'))">
+إظهار بشكل رسم بياني
+</a>
+</div>
+
 <form action="search">
    البحث عن
   <input type="text" name="q" value="$query">

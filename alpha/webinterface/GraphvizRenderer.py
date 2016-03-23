@@ -39,8 +39,8 @@ class GraphvizRenderer(object):
         node.
          
          """
-        res = self.graph.search_arabic(q, 100, "*:5")
-        self.result_nodes = list(res.index_results)
+        res = self.graph.search_arabic(q, True)
+        self.result_nodes = list(res.primary_results)
         if len(self.result_nodes) > 1:
             self._build_graph_for_query_results(q)
             self.object_drawer.draw_objects()
@@ -50,7 +50,7 @@ class GraphvizRenderer(object):
         Builds a graph for a single node.
         
         """
-        rs = self.graph.get_node(rid, 100, "*:5")
+        rs = self.graph.get_nodes([rid], True)
         r = rs.result_map.get(rid)
         if r:
             self.result_nodes = [r]

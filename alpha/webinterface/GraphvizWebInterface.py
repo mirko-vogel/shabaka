@@ -10,7 +10,7 @@ from awg import ArabicWordGraph
 from GraphvizRenderer import GraphvizRenderer
 from externaldataproviders import AgglomerationProvider
 
-class GraphvizWebinterface(object):
+class GraphvizWebInterface(object):
     """
     
     """
@@ -53,7 +53,7 @@ class GraphvizWebinterface(object):
         return unicode(t).encode("utf8")
 
 if __name__ == '__main__':
-    wi = GraphvizWebinterface()
+    wi = GraphvizWebInterface()
     
     cherrypy.quickstart(wi, '/', "cherrypy.conf")
         

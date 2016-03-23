@@ -1,2 +1,2 @@
-from WebInterface import GraphvizWebinterface
-from GraphVizRenderer import GraphvizRenderer
+from GraphvizWebInterface import GraphvizWebInterface
+from TextWebInterface import TextWebInterface
