@@ -38,7 +38,7 @@ class TextWebInterface(WebInterface):
     def show(self, rid):
         rid = "#" + rid
         res = self.graph.get_nodes([rid], True)
-        res._dump_stats()
+        # res._dump_stats()
         return self.render_single_node_result(res.first_result)
 
     def render_single_node_result(self, node):

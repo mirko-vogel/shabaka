@@ -17,7 +17,11 @@ class Importer(object):
         ## map (translation, pos) -> OrientRecord
         self.added_translations = {}
         
-    def import_json_file(self, fn):
+    def import_json_file(self, fn, skip_to = 1):
+        """
+        Import ElixirFM lexicon from json file, optionally skipping the first
+        skip_to roots. This index is 1-based.
+        """
         d = ArabicDictionary()
         d.import_dump(fn)
     
@@ -27,6 +31,8 @@ class Importer(object):
     
         N = len(entries_by_roots)
         for (n, (root, entries)) in enumerate(entries_by_roots.iteritems()):
+            if n + 1 < skip_to:
+                continue
             sys.stdout.write("\rImporting root %d/%d" % (n + 1, N))
             try:
                 self.import_root(root, entries)
@@ -95,7 +101,7 @@ class Importer(object):
         verb_nodes = []
         for e in verb_entries: 
             v = self.graph.add_verb_node(e.citation_form, e.stem, root_node,
-                                            {"pattern": e.pattern})
+                                            {"pattern": e.pattern, "elixir_id": e.entry_id})
             self.add_translations(v, e.entry_type, e.translations)
             verb_nodes.append(v)
     
@@ -134,7 +140,8 @@ class Importer(object):
                 parent = next((p for p in reversed(created_noun_nodes)
                               if pattern.find(p.data["pattern"]) >= 0),
                               fallback_node)
-                n = self.graph.add_noun_node(entries[0].citation_form, parent, {"pattern": pattern})
+                n = self.graph.add_noun_node(entries[0].citation_form, parent,
+                                             {"pattern": pattern, "elixir_id": e.entry_id})
                 created_noun_nodes.append(n)
                 for e in entries:
                     self.add_translations(n, e.entry_type, e.translations)
@@ -145,4 +152,4 @@ sys.stdout = codecs.getwriter('utf-8')(os.fdopen(sys.stdout.fileno(), 'w', 0), "
 
 if __name__ == "__main__":
     importer = Importer()
-    importer = importer.import_json_file(sys.argv[1])
+    importer = importer.import_json_file(sys.argv[1], skip_to = 5900)

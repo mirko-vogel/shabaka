@@ -148,7 +148,8 @@ class ArabicWordGraph(object):
         Returns a WrappedNode.
         
         """
-        kwargs["label"] = label
+        # HACK: Why do we need to do this escaping?
+        kwargs["label"] = label.translate({ord("\\"): u"\\\\"})
         r = self.client.record_create(self.cluster_ids[_class],
                                       Tools.encode_map(kwargs))
         return WrappedNode(r)
@@ -173,6 +174,7 @@ class ArabicWordGraph(object):
         
         """
         label = araby.normalize_ligature(araby.strip_tatweel(label))
+        label = label.replace(araby.SMALL_ALEF, "")
         if not araby.is_arabicstring(label):
             raise RuntimeError("'%s' is not an Arabic string" % label)
         
@@ -224,8 +226,8 @@ class ArabicWordGraph(object):
 if __name__ == '__main__':
 
     G = ArabicWordGraph()
-    # r = graph.add_root_node(u"ه ل ك")
-    # n1 = graph.add_verb_node( u"اِسْتَهْلَكَ", "X", r)
+    r = G.add_root_node(u"ه ل ك")
+    n1 = G.add_foreign_node(u"\\u\\", "en", r)
     # n2 = graph.add_noun_node(u"اِسْتِهْلَاْكٌ", n1, edge_properties = {"type": "masdar"})
     # n3 = graph.add_noun_node(u"مُسْتَهْلِكٌ", n1, edge_properties = {"type": "pp"})
     for r in (G.get_nodes(["#15:39797"], fetchplan = "*:1"), G.search_arabic(u"فضل"), G.search_arabic(u"فضّل")):

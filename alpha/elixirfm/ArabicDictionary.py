@@ -16,7 +16,7 @@ class ArabicDictionaryEntry:
         "VII": 7, "VIII": 8, "IX": 9, "X": 10})
 
     def __init__(self, citation_form, entry_type, root, pattern, stem,
-                 translations, metadata = None):
+                 translations, entry_id = None, metadata = None):
         """
         Create an Arabic lexicon entry:
         - citation_form: unicode string
@@ -34,10 +34,10 @@ class ArabicDictionaryEntry:
         self.pattern = pattern
         self.stem = stem
         self.translations = translations
+        self.entry_id = entry_id
         if not metadata:
             metadata = {}
         self.metadata = metadata
-
 
     @staticmethod
     def from_elixirfm_json(data):
@@ -54,12 +54,13 @@ class ArabicDictionaryEntry:
         root, data = "".join(data[0].split()), data[1]
         pattern, data = data[0], data[1]
         translation, data = data[0], data[1]
-        translations = str(translation).translate(None, "\"][").split(",")
+        d = dict( (ord(c), None) for c in u"\"[]")
+        translations = translation.translate(d).split(",")
         # If no stem info is given, use 0
         # stem = ArabicDictionaryEntry.ROMAN_TO_INT[data[1:-1]]
         stem = data[1:-1]
         
-        node = ArabicDictionaryEntry(citation_form, entry_type, root, pattern, stem, translations)
+        node = ArabicDictionaryEntry(citation_form, entry_type, root, pattern, stem, translations, entry_id)
         return node
 
     def get_surface_forms(self):
