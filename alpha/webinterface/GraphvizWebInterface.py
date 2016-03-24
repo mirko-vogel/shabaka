@@ -28,21 +28,21 @@ class GraphvizWebInterface(object):
     def search(self, q):
         renderer = GraphvizRenderer()
         renderer.build_graph_for_query(q)
-        
-        vars = { "node": None,
-                "svg": renderer.render_graph() }
-        
-        tmpl = file("web/templates/graphviz.tmpl").read().decode("utf-8")
-        t = Template(tmpl, searchList = [vars])
-        return unicode(t).encode("utf8")
+        return self.instantiate_template(renderer)
     
     @cherrypy.expose
     def show(self, rid):
         renderer = GraphvizRenderer()
         renderer.build_graph_for_node("#" + rid)
-        
-        node = renderer.result_nodes[0]
-        external_data = self.agglomeration_provider.query(node.data["label"])
+        return self.instantiate_template(renderer)
+    
+    def instantiate_template(self, renderer):
+        if len(renderer.result_nodes) == 1:    
+            node = renderer.result_nodes[0]
+            external_data = self.agglomeration_provider.query(node.data["label"])
+        else:
+            node = None
+            external_data = None
         
         vars = { "node": node,
                 "svg": renderer.render_graph(),

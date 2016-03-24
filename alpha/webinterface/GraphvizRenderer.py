@@ -43,7 +43,9 @@ class GraphvizRenderer(object):
         self.result_nodes = list(res.primary_results)
         if len(self.result_nodes) > 1:
             self._build_graph_for_query_results(q)
-            self.object_drawer.draw_objects()
+        else:
+            self._build_graph_for_single_result(self.result_nodes[0])
+        self.object_drawer.draw_objects()
     
     def build_graph_for_node(self, rid):
         """
